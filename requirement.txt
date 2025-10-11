@@ -1,0 +1,1 @@
+pip install langchain langchain-groq langchain-core langchain-pinecone langchain-huggingface pinecone-client python-dotenv pandas openpyxl sentence-transformers
