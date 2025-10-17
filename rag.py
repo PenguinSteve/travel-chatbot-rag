@@ -1,9 +1,11 @@
 from langchain_groq import ChatGroq
-from storedata import connect_to_pinecone
+from store_data import connect_to_pinecone
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 load_dotenv()
 
@@ -11,6 +13,8 @@ load_dotenv()
 def get_retriever(index_name: str, k: int = 5):
     vector_store = connect_to_pinecone(index_name=index_name)
     retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
+
+    print(f"\n---------------------Created retriever with top {k} documents.---------------------\n")
     return retriever
 
 def generate_groq_response(retriever, query: str):
@@ -46,19 +50,17 @@ def main():
     index_name = "rag-tourism"
     retriever = get_retriever(index_name=index_name, k=5)
 
-    query = "Hà Nội có những địa điểm du lịch nổi tiếng nào?"
+    query = "Tôi cần biết thêm nhiều thông tin về con đường Nguyễn Văn Trỗi ở thành phố Hồ Chí Minh."
     response, context_docs = generate_groq_response(retriever, query)
-    print("Query:", query)
-    print("\n")
-    print("---"*20)
-    print("\n")
-    print("Context Documents:")
-    for doc in context_docs:
-        print(f"- {doc.page_content}")
+
+    print("\n---------------------Context Documents:---------------------\n")
+    for index, doc in enumerate(context_docs):
+        if index > 0:
+            print("--------------------------------------------------------------\n")
+        print(f"Context number {index}:\n {doc.page_content}")
         print("  Metadata:", doc.metadata)
-    print("\n")
-    print("---"*20)
-    print("\n")
+    print("\n---------------------End of Context Documents---------------------\n")
+    print("Question:", query, "\n")
     print("Response:", response)
 
 if __name__ == "__main__":
