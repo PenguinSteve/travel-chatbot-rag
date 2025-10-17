@@ -34,8 +34,14 @@ def generate_groq_response(retriever, query: str):
         ("system", system),
         ("user", "Context:\n{context}\n\nQuestion: {question}")
     ])
+    
 
+    start_time_retrieval = os.times()
+    print("\n---------------------Retrieving relevant documents...---------------------\n")
     context_docs = retriever.invoke(query)
+    end_time_retrieval = os.times()
+    print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds.---------------------\n")
+
     prompt_input = {
         "context": "\n\n".join([doc.page_content for doc in context_docs]),
         "question": query

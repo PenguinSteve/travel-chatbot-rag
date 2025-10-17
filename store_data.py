@@ -73,8 +73,11 @@ def import_data_to_pinecone(chunks: List[Document], index_name: str):
     try:
         vector_store = connect_to_pinecone(index_name)
         print(f"\n---------------------Importing {len(chunks)} chunks to Pinecone index '{index_name}'---------------------\n")
+        start_time_import = os.times()
         vector_store.add_documents(documents=chunks)
-        print("\n---------------------Data import completed---------------------\n")
+        end_time_import = os.times()
+        print("\n---------------------Data import completed in", end_time_import.user - start_time_import.user, "seconds.---------------------\n")
+        
     except Exception as e:
         print(f"\n---------------------An error occurred while importing data to Pinecone: {e}---------------------\n")
 
