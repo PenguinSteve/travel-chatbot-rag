@@ -19,7 +19,7 @@ def get_retriever(index_name: str, k: int = 5):
 
 def generate_groq_response(retriever, query: str):
     groq_api_key = os.getenv("GROQ_API_KEY")
-    llm_model = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+    llm_model = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
 
     llm = ChatGroq(model=llm_model, temperature=0, api_key=groq_api_key)
 
@@ -47,10 +47,11 @@ def generate_groq_response(retriever, query: str):
     return response, context_docs
 
 def main():
+    start_time = os.times()
     index_name = "rag-tourism"
     retriever = get_retriever(index_name=index_name, k=5)
 
-    query = "Tôi cần biết thêm nhiều thông tin về con đường Nguyễn Văn Trỗi ở thành phố Hồ Chí Minh."
+    query = "Các món ăn ở quận 5, TP.HCM nổi tiếng những món gì?"
     response, context_docs = generate_groq_response(retriever, query)
 
     print("\n---------------------Context Documents:---------------------\n")
@@ -62,6 +63,8 @@ def main():
     print("\n---------------------End of Context Documents---------------------\n")
     print("Question:", query, "\n")
     print("Response:", response)
+    end_time = os.times()
+    print("\n---------------------Time taken:", end_time.user - start_time.user, "seconds---------------------")
 
 if __name__ == "__main__":
     main()
