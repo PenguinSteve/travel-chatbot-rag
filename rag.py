@@ -4,7 +4,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
 import os
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 load_dotenv()
@@ -14,7 +13,7 @@ def get_retriever(index_name: str, k: int = 5):
     vector_store = connect_to_pinecone(index_name=index_name)
     retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
 
-    print(f"\n---------------------Created retriever with top {k} documents.---------------------\n")
+    print(f"\n---------------------Created retriever with top {k} documents---------------------\n")
     return retriever
 
 def generate_groq_response(retriever, query: str):
@@ -57,7 +56,7 @@ def main():
     index_name = "rag-tourism"
     retriever = get_retriever(index_name=index_name, k=5)
 
-    query = "Các món ăn ở quận 5, TP.HCM nổi tiếng những món gì?"
+    query = "Các lễ hội văn hóa ở Thành phố Hồ Chí Minh là những lễ hội nào?"
     response, context_docs = generate_groq_response(retriever, query)
 
     print("\n---------------------Context Documents:---------------------\n")
