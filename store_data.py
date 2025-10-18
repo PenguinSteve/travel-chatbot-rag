@@ -83,7 +83,7 @@ def import_data_to_pinecone(chunks: List[Document], index_name: str):
 
 
 def main():
-    EXCEL_FILE_PATH = "data_tourism_TPHCM.xlsx" 
+    EXCEL_FILE_PATH = "data_tourism_DaNang_1.xlsx" 
     PINECONE_INDEX_NAME = "rag-tourism"
 
     init_pinecone(index_name=PINECONE_INDEX_NAME)
