@@ -24,7 +24,7 @@ def generate_groq_response(retriever, query: str):
 
     system = """You are an AI assistant that helps people find information about tourism.
     You are given the following extracted parts of a long document and a question.
-    Provide a conversational answer based on the context provided.
+    Provide a conversational answer based on the context provided.xw
     If you don't know the answer, just say "I don't know". Don't try to make up an answer.
     Always answer in Vietnamese.
     """
