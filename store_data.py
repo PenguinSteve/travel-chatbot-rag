@@ -84,8 +84,8 @@ def import_data_to_pinecone(chunks: List[Document], index_name: str):
 
 
 def main():
-    EXCEL_FILE_PATH = "data_tourism_DaNang_2.xlsx" 
-    PINECONE_INDEX_NAME = "rag-tourism"
+    EXCEL_FILE_PATH = "" 
+    PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "rag-tourism")
 
     init_pinecone(index_name=PINECONE_INDEX_NAME)
 
@@ -97,4 +97,5 @@ def main():
     )
 
 if __name__ == "__main__":
-    main()
+    # main()
+    pass

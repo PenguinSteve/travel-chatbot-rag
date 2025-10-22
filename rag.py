@@ -53,7 +53,7 @@ def generate_groq_response(retriever, query: str):
 
 def main():
     start_time = os.times()
-    index_name = "rag-tourism"
+    index_name = os.getenv("PINECONE_INDEX_NAME", "rag-tourism")
     retriever = get_retriever(index_name=index_name, k=5)
 
     query = "Các lễ hội văn hóa ở Thành phố Hồ Chí Minh là những lễ hội nào?"

@@ -1,1 +1,29 @@
-pip install langchain langchain-groq langchain-core langchain-pinecone langchain-huggingface pinecone-client python-dotenv pandas openpyxl sentence-transformers
+# FastAPI và Server
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Environment & Config
+python-dotenv
+pydantic
+pydantic-settings
+
+# LangChain Core
+langchain
+langchain-core
+langchain-groq
+langchain-pinecone
+langchain-huggingface
+
+# Vector Database
+pinecone-client
+
+# Embeddings
+sentence-transformers
+
+# Data Processing
+pandas
+openpyxl
+
+# HTTP Client
+httpx
