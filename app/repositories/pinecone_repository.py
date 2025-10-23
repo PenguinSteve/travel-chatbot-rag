@@ -1,4 +1,7 @@
 from app.config.settings import settings
+from langchain_core.documents import Document
+from typing import List
+import os
 
 class PineconeRepository:
     
@@ -14,3 +17,16 @@ class PineconeRepository:
         retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
         print(f"\n---------------------Retriever created with top {k} documents---------------------\n")
         return retriever
+
+    def import_data(self, chunks: List[Document]):
+        try:
+            print(f"\n---------------------Importing {len(chunks)} chunks to Pinecone index '{settings.PINECONE_INDEX_NAME}'---------------------\n")
+            start_time_import = os.times()
+            self.vector_store.add_documents(documents=chunks)
+            end_time_import = os.times()
+            print("\n---------------------Data import completed in", end_time_import.user - start_time_import.user, "seconds---------------------\n")
+            
+        except Exception as e:
+            print(f"\n---------------------An error occurred while importing data to Pinecone: {e}---------------------\n")
+
+    
