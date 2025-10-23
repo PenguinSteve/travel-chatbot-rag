@@ -11,8 +11,22 @@ router = APIRouter()
 def ask(payload: AskRequest, 
         pinecone_repository: PineconeRepository = Depends(get_pinecone_repository)):
 
+    classify_result = RAGService.classify_query(payload.query)
+    print("\n---------------------Classify Result---------------------\n")
+    print(classify_result)
+    print("\n---------------------End of Classify Result---------------------\n")
+
+    topic = classify_result.get("Topic") or "General"
+    location = classify_result.get("Location") or None
+
+    filter = {}
+    if topic:
+        filter["Topic"] = topic
+    if location:
+        filter["Location"] = location
+
     # Get retriever from Pinecone repository
-    retriever = pinecone_repository.get_retriever()
+    retriever = pinecone_repository.get_retriever(filter=filter)
 
     # Validate input
     if not payload.query:

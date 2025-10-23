@@ -11,10 +11,12 @@ class PineconeRepository:
 
         print(f"\n---------------------PineconeRepository initialized with default_k={self.default_k}---------------------\n")
 
-    def get_retriever(self, k: int = None):
+    def get_retriever(self, k: int = None, filter: dict = None):
         k = k or self.default_k
+
+        filter = filter or {}
         print(f"\n---------------------Creating retriever with top {k} documents---------------------\n")
-        retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
+        retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k, "filter": filter})
         print(f"\n---------------------Retriever created with top {k} documents---------------------\n")
         return retriever
 

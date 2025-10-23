@@ -5,6 +5,7 @@ from langchain_core.documents import Document
 
 class DataService:
 
+    @staticmethod
     def transform_data(
         filepath: str,
         document_column: str = "Document",
