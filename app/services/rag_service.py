@@ -9,14 +9,7 @@ GROQ_API_KEY = settings.GROQ_API_KEY
 LLM_MODEL = settings.LLM_MODEL
 
 class RAGService:
-    @staticmethod
-    def get_retriever(index_name: str, k: int = 5):
-        vector_store = connect_to_pinecone(index_name=index_name)
-        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
-
-        print(f"\n---------------------Created retriever with top {k} documents---------------------\n")
-        return retriever
-
+    
     @staticmethod
     def generate_groq_response(retriever, query: str):
         try:
@@ -25,7 +18,7 @@ class RAGService:
             system = """You are an AI assistant that helps people find information about tourism.
             You are given the following extracted parts of a long document and a question.
             Provide a conversational answer based on the context provided.
-            If you don't know the answer, just say "I don't know". Don't try to make up an answer.
+            If you don't know the answer or the context doesn't contain relevant information, just say "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Don't try to make up an answer.
             Always answer in Vietnamese.
             """
 

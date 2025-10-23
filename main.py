@@ -1,33 +1,30 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import controller
-from app.services.rag_service import RAGService
-from app.config.settings import settings
+from app.controller import controller
+from app.config.vector_database_pinecone import PineconeConfig
+from app.repositories.pinecone_repository import PineconeRepository
 import os
 
-# Global retriever (khởi tạo 1 lần)
-RETRIEVER = None
 
 @asynccontextmanager
 async def life_span(app: FastAPI):
-    global RETRIEVER
-
-    INDEX_NAME = settings.PINECONE_INDEX_NAME
-    DEFAULT_K = settings.RAG_TOP_K
-
     try:
-        RETRIEVER = RAGService.get_retriever(index_name=INDEX_NAME, k=DEFAULT_K)
+        # Initialize vector store
+        vector_store = PineconeConfig().get_vector_store()
+
+        # Initialize pinecone repository
+        app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
     except Exception as e:
-        raise RuntimeError(f"Failed to create retriever at startup: {e}")
+        raise RuntimeError(f"Failed to create vector_store/Pinecone repository at start up: {e}")
+
     yield
 
     # Shutdown
-    RETRIEVER = None
+    print("\n---------------------Shutting down FastAPI application---------------------\n")
+    app.state.pinecone_repository = None
 
 app = FastAPI(lifespan=life_span)
-
-router = APIRouter()
 
 # CORS
 app.add_middleware(
@@ -39,8 +36,3 @@ app.add_middleware(
 )
 
 app.include_router(controller.router)
-
-def get_retriever():
-    return RETRIEVER
-
-controller.set_retriever_getter(get_retriever)

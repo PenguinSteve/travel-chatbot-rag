@@ -1,32 +1,24 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from typing import Callable
+from app.core.dependencies import get_pinecone_repository
 
 router = APIRouter()
 
-# Global getter function (sẽ được set từ main.py)
-_retriever_getter: Callable = None
-
-def set_retriever_getter(getter: Callable):
-    global _retriever_getter
-    _retriever_getter = getter
-
-def get_retriever_dependency():
-    if _retriever_getter is None:
-        raise HTTPException(status_code=500, detail="Retriever getter not initialized")
-    retriever = _retriever_getter()
-    if retriever is None:
-        raise HTTPException(status_code=500, detail="Retriever not initialized")
-    return retriever
-
 @router.post("/ask", response_model=AskResponse)
-def ask(payload: AskRequest):
-    retriever = get_retriever_dependency()
+def ask(payload: AskRequest, 
+        pinecone_repository: PineconeRepository = Depends(get_pinecone_repository)):
+
+    # Get retriever from Pinecone repository
+    retriever = pinecone_repository.get_retriever()
+
+    # Validate input
     if not payload.query:
         raise HTTPException(status_code=400, detail="Missing 'query'")
 
+    # Generate response using RAG service
     try:
         response_text, context_docs = RAGService.generate_groq_response(retriever, payload.query)
     except Exception as e:
