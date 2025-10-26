@@ -21,6 +21,9 @@ pinecone-client
 # Embeddings
 sentence-transformers
 
+# Reranker
+flashrank
+
 # Data Processing
 pandas
 openpyxl

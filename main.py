@@ -1,9 +1,11 @@
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from app.controller import controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
+from langchain_community.document_compressors import FlashrankRerank
+
 import os
 
 
@@ -15,6 +17,11 @@ async def life_span(app: FastAPI):
 
         # Initialize pinecone repository
         app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
+
+        app.state.flashrank_compressor = FlashrankRerank(top_n=5)
+
+
+
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository at start up: {e}")
 
