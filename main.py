@@ -17,8 +17,11 @@ async def life_span(app: FastAPI):
 
         # Initialize pinecone repository
         app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
+        print("\n---------------------Pinecone repository initialized---------------------\n")
 
+        # Initialize Flashrank compressor
         app.state.flashrank_compressor = FlashrankRerank(top_n=5)
+        print("\n---------------------Flashrank compressor initialized---------------------\n")
 
 
 
