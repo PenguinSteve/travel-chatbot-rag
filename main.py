@@ -7,6 +7,9 @@ from app.repositories.pinecone_repository import PineconeRepository
 from langchain_community.document_compressors import FlashrankRerank
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 
 @asynccontextmanager

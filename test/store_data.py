@@ -84,7 +84,7 @@ def import_data_to_pinecone(chunks: List[Document], index_name: str):
 
 
 def main():
-    EXCEL_FILE_PATH = "" 
+    EXCEL_FILE_PATH = ""  # Path to your Excel file
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "rag-tourism")
 
     init_pinecone(index_name=PINECONE_INDEX_NAME)

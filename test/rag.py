@@ -28,23 +28,33 @@ def generate_groq_response(retriever, query: str):
     If you don't know the answer, just say "I don't know". Don't try to make up an answer.
     Always answer in Vietnamese.
     """
+    
+   
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", system),
         ("user", "Context:\n{context}\n\nQuestion: {question}")
     ])
     
+    print("\n---------------------Generating response...---------------------\n")
+    
 
-    start_time_retrieval = os.times()
-    print("\n---------------------Retrieving relevant documents...---------------------\n")
+    # start_time_retrieval = os.times()
+    # print("\n---------------------Retrieving relevant documents...---------------------\n")
     context_docs = retriever.invoke(query)
     end_time_retrieval = os.times()
-    print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds.---------------------\n")
+    # print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds.---------------------\n")
 
-    prompt_input = {
-        "context": "\n\n".join([doc.page_content for doc in context_docs]),
-        "question": query
-    }
+    if not context_docs.strip():
+        prompt_input = {
+            "context": "No relevant documents found. Please answer based on the data general",
+            "question": query
+        }
+    else:
+        prompt_input = {
+            "context": "\n\n".join([doc.page_content for doc in context_docs]),
+            "question": query
+        }
 
     rag_chain = prompt | llm | StrOutputParser()
 
@@ -56,7 +66,8 @@ def main():
     index_name = os.getenv("PINECONE_INDEX_NAME", "rag-tourism")
     retriever = get_retriever(index_name=index_name, k=5)
 
-    query = "Các lễ hội văn hóa ở Thành phố Hồ Chí Minh là những lễ hội nào?"
+
+    query = "Hi, I'm a foreigner planning to visit Vietnam. Can you suggest some must-visit tourist attractions and the best time to visit them?"
     response, context_docs = generate_groq_response(retriever, query)
 
     print("\n---------------------Context Documents:---------------------\n")

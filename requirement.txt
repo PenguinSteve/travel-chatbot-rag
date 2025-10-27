@@ -14,6 +14,7 @@ langchain-core
 langchain-groq
 langchain-pinecone
 langchain-huggingface
+langgraph
 
 # Vector Database
 pinecone-client
@@ -30,3 +31,4 @@ openpyxl
 
 # HTTP Client
 httpx
+

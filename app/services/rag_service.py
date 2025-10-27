@@ -21,6 +21,8 @@ class RAGService:
             If you don't know the answer or the context doesn't contain relevant information, just say "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó".
             Always answer in Vietnamese.
             """
+            
+           
 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system),
@@ -47,6 +49,10 @@ class RAGService:
             }
 
             response = rag_chain.invoke(prompt_input)
+            
+            print("\n---------------------Generated response:---------------------\n")
+            print(response)
+            print("\n---------------------Context documents:---------------------\n")
             return response, context_docs
 
         except Exception as e:
@@ -58,7 +64,7 @@ class RAGService:
             llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
 
             system = """You are a classifier assistant. Based on the user's question, extract the 'topic' and 'location'.
-            The 'topic' must be one of: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Off_topic'].
+            The 'topic' must be one of: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Off_topic', 'Plan'].
             The 'location' must be one of: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
             If a value is not mentioned, return null for that key.
             Respond ONLY with a valid JSON object.

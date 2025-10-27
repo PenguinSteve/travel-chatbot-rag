@@ -7,8 +7,10 @@ from app.core.dependencies import get_pinecone_repository
 from app.core.dependencies import get_flashrank_compressor
 from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ContextualCompressionRetriever
+from app.services.agent_service import AgentService
 
 router = APIRouter()
+
 
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest, 
@@ -45,7 +47,11 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload.query, topic, location)
+        if topic == 'Plan':
+            response = AgentService.run_agent(payload.query)
+            response_text = response['result']
+        else :
+            response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload.query, topic, location)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 
