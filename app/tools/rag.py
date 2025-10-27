@@ -4,6 +4,7 @@ from langchain_community.document_compressors import FlashrankRerank
 from app.core.dependencies import get_flashrank_compressor, get_pinecone_repository
 from langchain.retrievers import ContextualCompressionRetriever
 from app.services.rag_service import RAGService
+from app.core.context import PINECONE_REPOSITORY, FLASHRANK_COMPRESSOR  
 import json
 
 
@@ -12,12 +13,21 @@ def retrieve_document_rag_wrapper(tool_input: str):
     topic = payload["topic"]    
     location = payload["location"]
     query = payload["query"]
-    return retrieve_document_rag(topic, location, query)
+
+    if not PINECONE_REPOSITORY or not FLASHRANK_COMPRESSOR:
+        raise RuntimeError("Pinecone repository or FlashRank compressor not initialized in global context.")
+
+    return retrieve_document_rag(
+        topic,
+        location,
+        query,
+        PINECONE_REPOSITORY,
+        FLASHRANK_COMPRESSOR)
 
 def retrieve_document_rag(topic: str, location: str, query:str, 
-            pinecone_repository: PineconeRepository = Depends(get_pinecone_repository),
-            flashrank_compressor: FlashrankRerank = Depends(get_flashrank_compressor)):
-    
+            pinecone_repository: PineconeRepository,
+            flashrank_compressor: FlashrankRerank):
+
     if not isinstance(pinecone_repository, PineconeRepository):
         pinecone_repository = get_pinecone_repository()
     if not isinstance(flashrank_compressor, FlashrankRerank):
