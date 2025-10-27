@@ -17,25 +17,25 @@ weather_tool = Tool.from_function(
     )
 )
 
-rag_tool = Tool.from_function(
-    func=retrieve_document_rag_wrapper,
-    name="rag_document_retrieval",
-    description=(
-        "Use this tool to retrieve relevant travel information from the RAG knowledge base. "
-        "This tool must be used when the user requests a travel plan, trip, or itinerary.\n\n"
-        "You must call this tool sequentially for each topic in the following order:\n"
-        "1) Food → 2) Accommodation\n\n"
-        "Each call requires a JSON object as input with the following structure:\n\n"
-        "{\n"
-        '  "topic": "one of [Food, Accommodation]",\n'
-        '  "location": "the city or destination mentioned in the user’s request (e.g., Đà Nẵng, Hà Nội, Thành phố Hồ Chí Minh)",\n'
-        '  "query": "a short, focused question that combines the topic and location. Examples:\n'
-        '      - topic: "Food" → query: "What are the most famous local dishes in Đà Nẵng?"\n'
-        '      - topic: "Accommodation" → query: "What are the best hotels to stay in Đà Nẵng?"\n'
-        '  }\n\n'
-        "You must wait for the observation result of each call before continuing to the next topic."
-    ),
-)
+# rag_tool = Tool.from_function(
+#     func=retrieve_document_rag_wrapper,
+#     name="rag_document_retrieval",
+#     description=(
+#         "Use this tool to retrieve relevant travel information from the RAG knowledge base. "
+#         "This tool must be used when the user requests a travel plan, trip, or itinerary.\n\n"
+#         "You must call this tool sequentially for each topic in the following order:\n"
+#         "1) Food → 2) Accommodation\n\n"
+#         "Each call requires a JSON object as input with the following structure:\n\n"
+#         "{\n"
+#         '  "topic": "one of [Food, Accommodation]",\n'
+#         '  "location": "the city or destination mentioned in the user’s request (e.g., Đà Nẵng, Hà Nội, Thành phố Hồ Chí Minh)",\n'
+#         '  "query": "a short, focused question that combines the topic and location. Examples:\n'
+#         '      - topic: "Food" → query: "What are the most famous local dishes in Đà Nẵng?"\n'
+#         '      - topic: "Accommodation" → query: "What are the best hotels to stay in Đà Nẵng?"\n'
+#         '  }\n\n'
+#         "You must wait for the observation result of each call before continuing to the next topic."
+#     ),
+# )
 
 summarization_tool = Tool.from_function(
     func=summarize_text,
@@ -50,4 +50,4 @@ summarization_tool = Tool.from_function(
     ),
 )
 
-TOOLS = [rag_tool, weather_tool, summarization_tool]
+TOOLS = [weather_tool, summarization_tool]

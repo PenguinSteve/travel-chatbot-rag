@@ -5,7 +5,6 @@ from app.controller import controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
 from langchain_community.document_compressors import FlashrankRerank
-from app.core import context as global_context
 
 import os
 from dotenv import load_dotenv
@@ -20,19 +19,12 @@ async def life_span(app: FastAPI):
         vector_store = PineconeConfig().get_vector_store()
 
         # Initialize pinecone repository
-        pinecone_repository = PineconeRepository(vector_store=vector_store)
-        app.state.pinecone_repository = pinecone_repository
+        app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
 
-        # Store global context
-        global_context.PINECONE_REPOSITORY = pinecone_repository
         print("\n---------------------Pinecone repository initialized---------------------\n")
 
         # Initialize Flashrank compressor
-        flashrank_compressor = FlashrankRerank(top_n=5)
-        app.state.flashrank_compressor = flashrank_compressor
-
-        # Store global context
-        global_context.FLASHRANK_COMPRESSOR = flashrank_compressor
+        app.state.flashrank_compressor = FlashrankRerank(top_n=5)
         print("\n---------------------Flashrank compressor initialized---------------------\n")
 
 
