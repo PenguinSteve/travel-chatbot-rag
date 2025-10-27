@@ -38,11 +38,8 @@ class RAGService:
                 response = rag_chain.invoke(prompt_input)
                 return response, []
             
-            start_time_retrieval = os.times()
-            print("\n---------------------Retrieving relevant documents...---------------------\n")
-            context_docs = retriever.invoke(query)
-            end_time_retrieval = os.times()
-            print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
+            # Retrieve relevant documents
+            context_docs = RAGService.retrieve_documents(retriever, query)
 
             prompt_input = {
                 "context": "\n\n".join([doc.page_content for doc in context_docs]),
@@ -102,3 +99,17 @@ class RAGService:
 
         except Exception as e:
             raise RuntimeError(f"Query classification error: {e}")
+
+    @staticmethod
+    def retrieve_documents(retriever, query: str):
+        try:
+            start_time_retrieval = os.times()
+            print("\n---------------------Retrieving relevant documents...---------------------\n")
+            context_docs = retriever.invoke(query)
+            end_time_retrieval = os.times()
+            print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
+            
+            return context_docs
+
+        except Exception as e:
+            raise RuntimeError(f"Document retrieval error: {e}")
