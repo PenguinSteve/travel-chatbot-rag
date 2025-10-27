@@ -42,5 +42,6 @@ def retrieve_document_rag(topic: str, location: str, query:str,
     )
     
     context_docs = RAGService.retrieve_documents(compression_retriever, query)
-    return context_docs
+    page_contents = [doc.page_content for doc in context_docs]
+    return page_contents
 

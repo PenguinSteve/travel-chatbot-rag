@@ -48,7 +48,8 @@ def ask(payload: AskRequest,
     # Generate response using RAG service
     try:
         if topic == 'Plan':
-            response = AgentService.run_agent(payload.query)
+            agent_service = AgentService(pinecone_repository, flashrank_compressor)
+            response = agent_service.run_agent(question=payload.query)
             response_text = response.get("output")
             return AskResponse(query=payload.query, answer=response_text)
         else :
