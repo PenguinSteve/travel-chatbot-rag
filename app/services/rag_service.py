@@ -10,14 +10,15 @@ LLM_MODEL = settings.LLM_MODEL
 class RAGService:
     
     @staticmethod
-    def generate_groq_response(retriever, query: str):
+    def generate_groq_response(retriever, query: str, topic: str = None, location: str = None):
         try:
             llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
 
             system = """You are an AI assistant that helps people find information about tourism.
             You are given the following extracted parts of a long document and a question.
             Provide a conversational answer based on the context provided.
-            If you don't know the answer or the context doesn't contain relevant information, just say "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Don't try to make up an answer.
+            If the question is about greeting or is off-topic, respond appropriately.
+            If you don't know the answer or the context doesn't contain relevant information, just say "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó".
             Always answer in Vietnamese.
             """
 
@@ -25,6 +26,17 @@ class RAGService:
                 ("system", system),
                 ("user", "Context:\n{context}\n\nQuestion: {question}")
             ])
+
+            rag_chain = prompt | llm | StrOutputParser()
+
+            if( topic == "Off_topic" ):
+                prompt_input = {
+                    "context": "",
+                    "question": query
+                }
+
+                response = rag_chain.invoke(prompt_input)
+                return response, []
             
             start_time_retrieval = os.times()
             print("\n---------------------Retrieving relevant documents...---------------------\n")
@@ -36,8 +48,6 @@ class RAGService:
                 "context": "\n\n".join([doc.page_content for doc in context_docs]),
                 "question": query
             }
-
-            rag_chain = prompt | llm | StrOutputParser()
 
             response = rag_chain.invoke(prompt_input)
             return response, context_docs
@@ -51,7 +61,7 @@ class RAGService:
             llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
 
             system = """You are a classifier assistant. Based on the user's question, extract the 'topic' and 'location'.
-            The 'topic' must be one of: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Plan'].
+            The 'topic' must be one of: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Off_topic'].
             The 'location' must be one of: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
             If a value is not mentioned, return null for that key.
             Respond ONLY with a valid JSON object.
@@ -70,6 +80,12 @@ class RAGService:
 
             Example 5: "Các cách di chuyển ở Hà Nội"
             {{"Topic": "Transport", "Location": null}}
+
+            Example 6: "Tell me a joke."
+            {{"Topic": "Off_topic", "Location": null}}
+
+            Example 7: "Xin chào!"
+            {{"Topic": "Off_topic", "Location": null}}
             """
 
             prompt = ChatPromptTemplate.from_messages([

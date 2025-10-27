@@ -24,7 +24,7 @@ def ask(payload: AskRequest,
     print(classify_result)
     print("\n---------------------End of Classify Result---------------------\n")
 
-    topic = classify_result.get("Topic") or "General"
+    topic = classify_result.get("Topic") or None
     location = classify_result.get("Location") or None
 
     filter = {}
@@ -45,7 +45,7 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload.query)
+        response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload.query, topic, location)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 
