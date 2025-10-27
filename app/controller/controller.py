@@ -48,11 +48,9 @@ def ask(payload: AskRequest,
     # Generate response using RAG service
     try:
         if topic == 'Plan':
-            agent_service_instance = AgentService(pinecone_repository, flashrank_compressor)
-
-            response = agent_service_instance.run_agent(payload.query)
-            response_text = response['result']
-            context_docs = []
+            response = AgentService.run_agent(payload.query)
+            response_text = response.get("output")
+            return AskResponse(query=payload.query, answer=response_text)
         else :
             response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload.query, topic, location)
     except Exception as e:
