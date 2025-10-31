@@ -169,7 +169,7 @@ class RAGService:
             ---
             Lịch sử: [Human: "Chào bạn"]
             Câu hỏi mới: "Khỏe không?"
-            Câu hỏi độclop: "Bạn có khỏe không?"
+            Câu hỏi độc lập: "Bạn có khỏe không?"
             ---"""
 
         print('---> Chat History:', chat_history)

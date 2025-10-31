@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pymongo import MongoClient
+from app.models.chat_schema import ChatMessage
 from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
@@ -78,7 +79,14 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        if topic == 'Plan':
+        if topic == 'Plan' & location == None:
+
+            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+            chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))
+
+            return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
+        
+        elif topic == 'Plan':
             agent_service = AgentService(pinecone_repository, flashrank_compressor)
             response = agent_service.run_agent(question=payload.message)
             response_text = response.get("output")
