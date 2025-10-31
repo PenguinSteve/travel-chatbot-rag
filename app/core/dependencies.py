@@ -13,3 +13,4 @@ def get_flashrank_compressor(request: Request) -> FlashrankRerank:
         raise RuntimeError("FlashRank compressor not initialized in app state.")
         
     return request.app.state.flashrank_compressor
+

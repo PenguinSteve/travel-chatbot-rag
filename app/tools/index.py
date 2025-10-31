@@ -1,7 +1,6 @@
 from langchain.tools import Tool
 from app.tools.weather import weather_tool_wrapper
 from app.tools.summary import summarize_text
-from app.tools.rag import retrieve_document_rag_wrapper
 
 weather_tool = Tool.from_function(
     func=weather_tool_wrapper,
@@ -21,14 +20,12 @@ summarization_tool = Tool.from_function(
     func=summarize_text,
     name="summarization_tool",
     description=(
-        "Use this tool to summarize or rewrite a travel-related text into a concise, "
-        "friendly, and tour-guide-style itinerary in Vietnamese. "
-        "The summary must retain key details such as attractions, activities, foods, accommodations, and weather, "
-        "while presenting them in a clear, day-by-day format if possible. "
-        "The tone should be warm, natural, and engaging — like a local tour guide narrating a trip. "
-        "Do not add new or imagined details beyond the input text. "
-        "Input: a single string containing the original text to be summarized."
-    ),
+        "Summarize or rewrite a travel-related text into a concise, friendly Vietnamese itinerary. "
+        "Keep key details like attractions, activities, food, accommodations, and weather. "
+        "Present the result in a clear, day-by-day format with a warm, natural tone — "
+        "like a local tour guide describing the trip. "
+        "Do not add any new or imagined information. "
+        "Input: one string containing the original text to summarize."
+    )
 )
-
 TOOLS = [weather_tool, summarization_tool]

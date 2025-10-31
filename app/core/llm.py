@@ -42,3 +42,23 @@ def llm_summary() -> ChatGroq:
         max_tokens=max_tokens,
         timeout=timeout,
     )
+
+def llm_chat() -> ChatGroq:
+    api_key = settings.GROQ_API_KEY
+    if not api_key:
+        raise RuntimeError("LLM_MODEL_CHAT not set")
+
+    model = settings.LLM_MODEL_CHAT
+    temperature = 0.0
+
+    max_tokens = 1000
+
+    timeout = settings.LLM_TIMEOUT
+
+    return ChatGroq(
+        groq_api_key=api_key,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=timeout,
+    )

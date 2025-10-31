@@ -4,7 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.controller import controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
+from app.config.mongodb import get_database
 from langchain_community.document_compressors import FlashrankRerank
+
 
 import os
 from dotenv import load_dotenv
@@ -15,19 +17,20 @@ load_dotenv()
 @asynccontextmanager
 async def life_span(app: FastAPI):
     try:
+        db = get_database()
+        app.state.db = db
+        print('Connected to MongoDB database:', db.name)
+        
         # Initialize vector store
         vector_store = PineconeConfig().get_vector_store()
 
         # Initialize pinecone repository
         app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
-
-        print("\n---------------------Pinecone repository initialized---------------------\n")
+        print('Initialized Pinecone repository with vector store.')
 
         # Initialize Flashrank compressor
         app.state.flashrank_compressor = FlashrankRerank(top_n=5)
-        print("\n---------------------Flashrank compressor initialized---------------------\n")
-
-
+        print('Initialized Flashrank compressor.')
 
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository at start up: {e}")
@@ -37,6 +40,10 @@ async def life_span(app: FastAPI):
     # Shutdown
     print("\n---------------------Shutting down FastAPI application---------------------\n")
     app.state.pinecone_repository = None
+    if hasattr(app.state, "db"):
+        app.state.db.client.close()
+        print("🧹 MongoDB connection closed")
+    
 
 app = FastAPI(lifespan=life_span)
 

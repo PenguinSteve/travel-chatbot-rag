@@ -19,19 +19,20 @@ class AgentService:
             func=lambda tool_input: retrieve_document_rag_wrapper(tool_input,
                                                                   pinecone_repository,
                                                                 flashrank_compressor),
-           description=(
-                "Retrieve relevant travel information from the RAG knowledge base. "
-                "This tool is used when the user requests a travel plan, trip, or itinerary. "
-                "Each call must include a valid JSON object as input with the following structure:"
-                "{"
-                '  "topic": "one of [Food, Accommodation]",'
-                '  "location": "the city or destination mentioned in the user’s question — must be one of [Đà Nẵng, Hà Nội, Thành phố Hồ Chí Minh]",'
-                '  "query": "a short, focused question combining the topic and location. Examples:'
-                '      - topic: \\"Food\\" → query: \\"What are the most famous local dishes in Đà Nẵng?\\"'
-                '      - topic: \\"Accommodation\\" → query: \\"What are the best hotels to stay in Đà Nẵng?\\"'
-                "}"
-                "You must always wait for the observation result of each call before moving to the next topic."
+            description=(
+                "Retrieve travel information from the RAG knowledge base for a specific topic "
+                "(Food, Accommodation, or Attraction) in one of the supported cities "
+                "[Đà Nẵng, Hà Nội, Thành phố Hồ Chí Minh]. "
+                "Do not create placeholder or generic queries — always build the query dynamically from the user’s input or conversation context. "
+                "Input must be a JSON object in the following format:\n"
+                "{\n"
+                '  "topic": "Food" | "Accommodation" | "Attraction",\n'
+                '  "location": "City or destination mentioned by the user",\n'
+                '  "query": "A short, precise question about the topic and city."\n'
+                "}\n"
+                "Wait for the Observation result after each call before proceeding to the next topic."
             )
+
         )
 
         self.TOOLS = TOOLS + [rag_tool]
@@ -41,6 +42,5 @@ class AgentService:
 
 
     def run_agent(self, question: str):
-
         result = self.executor.invoke({"input": question})
         return result
