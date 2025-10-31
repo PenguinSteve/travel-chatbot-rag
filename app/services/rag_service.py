@@ -54,6 +54,9 @@ class RAGService:
                 }
 
                 response = rag_chain.invoke(prompt_input)
+
+                # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+                # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
                 return response, []
             
             # Retrieve relevant documents
