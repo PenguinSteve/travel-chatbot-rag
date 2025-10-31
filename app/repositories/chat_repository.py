@@ -30,3 +30,4 @@ class ChatRepository:
     
     def get_all_sessions(self):
         return list(self.collection.find({}))
+    
