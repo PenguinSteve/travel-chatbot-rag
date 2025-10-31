@@ -20,17 +20,17 @@ class AgentService:
                                                                   pinecone_repository,
                                                                 flashrank_compressor),
             description=(
-                "Retrieve travel information from the RAG knowledge base for a specific topic "
-                "(Food, Accommodation, or Attraction) in one of the supported cities "
-                "[Đà Nẵng, Hà Nội, Thành phố Hồ Chí Minh]. "
-                "Do not create placeholder or generic queries — always build the query dynamically from the user’s input or conversation context. "
-                "Input must be a JSON object in the following format:\n"
-                "{\n"
-                '  "topic": "Food" | "Accommodation" | "Attraction",\n'
-                '  "location": "City or destination mentioned by the user",\n'
-                '  "query": "A short, precise question about the topic and city."\n'
-                "}\n"
-                "Wait for the Observation result after each call before proceeding to the next topic."
+                "Retrieve detailed travel information from the RAG knowledge base for a given topic "
+                "in one of the supported cities (Thành phố Hồ Chí Minh, Đà Nẵng, or Hà Nội). "
+                "Use this tool to collect accurate local data about food, accommodations, or attractions "
+                "before generating the trip itinerary. "
+                "Input must be a JSON object in the following format: "
+                "{ "
+                '"topic": "Food" | "Accommodation" | "Attraction", '
+                '"location": "Supported city or mapped district name", '
+                '"query": "Short, focused question combining topic and location" '
+                "}. "
+                "Output returns relevant travel content and metadata for that topic."
             )
 
         )

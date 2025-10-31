@@ -5,14 +5,16 @@ from app.tools.summary import summarize_text
 weather_tool = Tool.from_function(
     func=weather_tool_wrapper,
     name="weather_forecast",
-    description = (
-        "Get the daily weather forecast for a specific city and date range. "
-        "The input must be a valid JSON object with the following fields:"
-        "{"
-        '  "city": "name of the city (e.g., Ho Chi Minh, Da Nang, Hanoi)",'
-        '  "start_date": "start date in YYYY-MM-DD",'
-        '  "end_date": "end date in YYYY-MM-DD"'
-        "}"
+    description=(
+        "Retrieve a 3–7 day weather forecast for a specific city and date range. "
+        "Use this tool to get weather details relevant to a planned trip itinerary. "
+        "Input must be a JSON object with the following fields: "
+        "{ "
+        '"city": "Name of the supported city (Ho Chi Minh, Da Nang, or Hanoi)", '
+        '"start_date": "Start date in YYYY-MM-DD", '
+        '"end_date": "End date in YYYY-MM-DD" '
+        "}. "
+        "Output returns temperature, conditions, and other daily forecast details."
     )
 )
 
@@ -20,12 +22,12 @@ summarization_tool = Tool.from_function(
     func=summarize_text,
     name="summarization_tool",
     description=(
-        "Summarize or rewrite a travel-related text into a concise, friendly Vietnamese itinerary. "
-        "Keep key details like attractions, activities, food, accommodations, and weather. "
-        "Present the result in a clear, day-by-day format with a warm, natural tone — "
-        "like a local tour guide describing the trip. "
-        "Do not add any new or imagined information. "
-        "Input: one string containing the original text to summarize."
-    )
+            "Combine all gathered trip data (food, accommodation, attractions, and weather) "
+            "into one friendly, concise Vietnamese travel itinerary. "
+            "Input: one long text string containing the collected travel information. "
+            "Output: a natural, day-by-day trip summary in Markdown — "
+            "realistic, informative, and written in the tone of a local tour guide. "
+            "Do not invent new information or add facts not present in the input."
+        )
 )
 TOOLS = [weather_tool, summarization_tool]

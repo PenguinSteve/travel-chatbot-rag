@@ -11,7 +11,7 @@ def llm_plan() -> ChatGroq:
   
     temperature = settings.LLM_TEMPERATURE
 
-    max_tokens = settings.LLM_MAX_TOKENS
+    # max_tokens = settings.LLM_MAX_TOKENS
 
     timeout = settings.LLM_TIMEOUT
 
@@ -19,7 +19,7 @@ def llm_plan() -> ChatGroq:
         groq_api_key=api_key,
         model=model,    
         temperature=temperature,
-        max_tokens=max_tokens,
+        # max_tokens=max_tokens,
         timeout=timeout,
     )
 
@@ -31,7 +31,7 @@ def llm_summary() -> ChatGroq:
     model = settings.LLM_MODEL_SUMMARY
     temperature = 0.0
 
-    max_tokens = 1000
+    # max_tokens = 1000
 
     timeout = settings.LLM_TIMEOUT
 
@@ -39,7 +39,7 @@ def llm_summary() -> ChatGroq:
         groq_api_key=api_key,
         model=model,
         temperature=temperature,
-        max_tokens=max_tokens,
+        # max_tokens=max_tokens,
         timeout=timeout,
     )
 
@@ -51,7 +51,7 @@ def llm_chat() -> ChatGroq:
     model = settings.LLM_MODEL_CHAT
     temperature = 0.0
 
-    max_tokens = 1000
+    # max_tokens = 1000
 
     timeout = settings.LLM_TIMEOUT
 
@@ -59,6 +59,6 @@ def llm_chat() -> ChatGroq:
         groq_api_key=api_key,
         model=model,
         temperature=temperature,
-        max_tokens=max_tokens,
+        # max_tokens=max_tokens,
         timeout=timeout,
     )
