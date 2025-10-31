@@ -21,6 +21,7 @@ class ChatRepository:
 
         if( session_id == "default" ):
             return []
+        
         session = self.collection.find_one({"session_id": session_id})
 
         print("Session from DB:", session)

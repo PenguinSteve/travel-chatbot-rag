@@ -52,12 +52,15 @@ class RAGService:
                     "context": "",
                     "question": standalone_question
                 }
+                
 
                 response = rag_chain.invoke(prompt_input)
 
-                # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-                # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
+                chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+                chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
                 return response, []
+            
+            
             
             # Retrieve relevant documents
             context_docs = RAGService.retrieve_documents(retriever, standalone_question)
@@ -70,8 +73,8 @@ class RAGService:
 
             response = rag_chain.invoke(prompt_input)
 
-            # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-            # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
+            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
             
             print("\n---------------------Generated response:---------------------\n")
             print(response)
