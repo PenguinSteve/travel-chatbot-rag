@@ -1,4 +1,5 @@
 from langchain.agents import create_react_agent, AgentExecutor
+from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.pinecone_repository import PineconeRepository
 from langchain_community.document_compressors import FlashrankRerank
@@ -45,6 +46,6 @@ class AgentService:
 
     def run_agent(self, session_id: str, question: str):
         result = self.executor.invoke({"input": question})
-        self.chat_repository.save_message(session_id=session_id, message=question, role="human")
-        self.chat_repository.save_message(session_id=session_id, message=result['output'], role="ai")
+        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
+        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=result['output'], role="ai"))
         return result

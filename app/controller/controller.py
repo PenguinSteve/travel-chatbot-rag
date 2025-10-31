@@ -10,7 +10,6 @@ from app.core.dependencies import get_flashrank_compressor
 from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ContextualCompressionRetriever
 from app.services.agent_service import AgentService
-from app.services.chat_history import chat_history_to_messages
 from app.repositories.chat_repository import ChatRepository
 from app.utils.chat_history import build_chat_history_from_db
 
@@ -50,7 +49,8 @@ def ask(payload: AskRequest,
     # Create standalone question from chat history
     standalone_question = RAGService.build_standalone_question(message, chat_history)
 
-    print("Standalone question", standalone_question)
+    print("\n---------------------Standalone question---------------------\n")
+    print(standalone_question)
 
     # Classify query to get topic and location
     classify_result = RAGService.classify_query(standalone_question)

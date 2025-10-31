@@ -17,17 +17,28 @@ class ChatRepository:
             upsert=True
         )
         
-    def get_chat_history(self, session_id:str):
+    def get_chat_history(self, session_id: str):
+        print("Fetching chat history for session_id:", session_id)
 
-        if( session_id == "default" ):
+        if session_id == "default":
             return []
-        
-        session = self.collection.find_one({"session_id": session_id})
 
-        print("Session from DB:", session)
-        if session:
-            return session.get("messages", [])
-        return []
+        try:
+            session = self.collection.find_one({"session_id": session_id})
+            print("Session from DB:", session)
+
+            if session and "messages" in session:
+                # Lấy 5 phần tử cuối cùng
+                return session["messages"][-5:]
+            else:
+                print(f"No messages found for session_id: {session_id}")
+                return []
+
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch chat history for session_id={session_id}: {e}")
+            return []
+
+
     
     def get_all_sessions(self):
         return list(self.collection.find({}))
