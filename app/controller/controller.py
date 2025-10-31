@@ -79,7 +79,7 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        if topic == 'Plan' & location == None:
+        if topic == 'Plan' and location == None:
 
             chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
             chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))

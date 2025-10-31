@@ -148,6 +148,7 @@ class RAGService:
 
     @staticmethod
     def build_standalone_question(question: str, chat_history: list):
+        
         contextualize_q_system_prompt = """Bạn là một trợ lý AI chuyên viết lại câu hỏi. Nhiệm vụ duy nhất của bạn là lấy Lịch sử trò chuyện và Câu hỏi mới, sau đó tạo ra một "Câu hỏi độc lập" (standalone question) duy nhất có thể hiểu được mà không cần lịch sử.
 
             QUY TẮC TUYỆT ĐỐI:
@@ -170,27 +171,43 @@ class RAGService:
             Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
             Câu hỏi độc lập: "Các món ăn ngon ở Hà Nội là gì?"
             ---
-            Lịch sử: [Human: "Chào bạn"]
-            Câu hỏi mới: "Khỏe không?"
-            Câu hỏi độc lập: "Bạn có khỏe không?"
-            ---"""
+            Lịch sử: [Human: "Các món ăn ở Đà Nẵng là gì?", AI: "Đà Nẵng có Mì Quảng, Bánh Xèo..."]
+            Câu hỏi mới: "Ngoài những món đó ra, còn món nào khác không?"
+            Câu hỏi độc lập: "Ngoài Mì Quảng và Bánh Xèo, Đà Nẵng còn có những món ăn nào khác ở Đà Nẵng?"
+            ---
 
-        print('---> Chat History:', chat_history)
-        # Create a ChatPromptTemplate for contextualizing the question
+            Bây giờ, hãy thực hiện nhiệm vụ cho Lịch sử và Câu hỏi mới dưới đây:
+            """
+
+        history_lines = []
+        for msg in chat_history:
+            role = "Human" if msg.type == 'human' else "AI"
+            history_lines.append(f"{role}: \"{msg.content}\"")
+        
+        chat_history_str = ", ".join(history_lines)
+        if chat_history_str:
+            chat_history_str = f"[{chat_history_str}]"
+        else:
+            chat_history_str = "[]"
+
+        print('---> Formatted Chat History:', chat_history_str)
+
+        # Create prompt template for contextualizing question
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", contextualize_q_system_prompt),  # Set the system prompt
-                MessagesPlaceholder("chat_history"),  # Placeholder for the chat history
-                ("human", "{input}"),  # Placeholder for the user's input question
+                ("system", contextualize_q_system_prompt),
+                ("human", "Lịch sử: {chat_history}\nCâu hỏi mới: {input}")
             ]
         )
 
-        # Create the contextualization chain
+        # Create the chain for generating standalone question
         contextualize_q_chain = contextualize_q_prompt | llm_chat() | StrOutputParser()
 
-        # Invoke the chain to get the standalone question
         standalone_question = contextualize_q_chain.invoke(
-            {"input": question, "chat_history": chat_history}
+            {
+                "input": question,
+                "chat_history": chat_history_str
+            }
         )
 
         return standalone_question
