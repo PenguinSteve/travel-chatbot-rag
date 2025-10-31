@@ -156,6 +156,7 @@ class RAGService:
             - CHỈ được xuất ra (output) câu hỏi độc lập đã được viết lại.
             - Nếu câu hỏi mới đã đủ nghĩa, hãy lặp lại y hệt.
             - Không thêm bất kỳ lời chào hay lời giải thích nào.
+            - Phải giữ nguyên đại từ của người dùng (ví dụ: "tôi", "cho tôi", "của tôi"). KHÔNG được đổi thành "bạn".
 
             VÍ DỤ:
             ---
