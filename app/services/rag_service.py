@@ -142,10 +142,32 @@ class RAGService:
 
     @staticmethod
     def build_standalone_question(question: str, chat_history: list):
-        contextualize_q_system_prompt = """Given a chat history and the latest user question \
-        which might reference context in the chat history, formulate a standalone question \
-        which can be understood without the chat history. Do NOT answer the question, \
-        just reformulate it if needed and otherwise return it as is."""
+        contextualize_q_system_prompt = """Bạn là một trợ lý AI chuyên viết lại câu hỏi. Nhiệm vụ duy nhất của bạn là lấy Lịch sử trò chuyện và Câu hỏi mới, sau đó tạo ra một "Câu hỏi độc lập" (standalone question) duy nhất có thể hiểu được mà không cần lịch sử.
+
+            QUY TẮC TUYỆT ĐỐI:
+            - KHÔNG BAO GIỜ được trả lời câu hỏi.
+            - CHỈ được xuất ra (output) câu hỏi độc lập đã được viết lại.
+            - Nếu câu hỏi mới đã đủ nghĩa, hãy lặp lại y hệt.
+            - Không thêm bất kỳ lời chào hay lời giải thích nào.
+
+            VÍ DỤ:
+            ---
+            Lịch sử: [Human: "Tôi muốn đi du lịch Đà Nẵng"]
+            Câu hỏi mới: "Ở đó có gì chơi?"
+            Câu hỏi độc lập: "Đà Nẵng có những địa điểm du lịch nào?"
+            ---
+            Lịch sử: [Human: "Cầu Rồng đẹp thật!", AI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
+            Câu hỏi mới: "Mấy giờ vậy?"
+            Câu hỏi độc lập: "Cầu Rồng phun lửa lúc mấy giờ vào cuối tuần?"
+            ---
+            Lịch sử: []
+            Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
+            Câu hỏi độc lập: "Các món ăn ngon ở Hà Nội là gì?"
+            ---
+            Lịch sử: [Human: "Chào bạn"]
+            Câu hỏi mới: "Khỏe không?"
+            Câu hỏi độclop: "Bạn có khỏe không?"
+            ---"""
 
         print('---> Chat History:', chat_history)
         # Create a ChatPromptTemplate for contextualizing the question
