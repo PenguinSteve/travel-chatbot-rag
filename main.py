@@ -17,6 +17,8 @@ load_dotenv()
 @asynccontextmanager
 async def life_span(app: FastAPI):
     try:
+
+        # Initalize MongoDB connection
         db = get_database()
         app.state.db = db
         print('Connected to MongoDB database:', db.name)

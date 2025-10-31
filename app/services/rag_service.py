@@ -1,8 +1,12 @@
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from app.config.settings import settings
+from app.core.llm import llm_chat
 import os
+from app.models.chat_schema import ChatMessage
+from app.repositories.chat_repository import ChatRepository
+from app.request.AskRequest import ChatRequest
 
 GROQ_API_KEY = settings.GROQ_API_KEY
 LLM_MODEL = settings.LLM_MODEL
@@ -10,45 +14,61 @@ LLM_MODEL = settings.LLM_MODEL
 class RAGService:
     
     @staticmethod
-    def generate_groq_response(retriever, query: str, topic: str = None, location: str = None):
+    def generate_groq_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topic: str = None, location: str = None, chat_repository: ChatRepository = None):
         try:
+            message = payload.message
+            session_id = payload.session_id
+
             llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
 
             system = """You are an AI assistant that helps people find information about tourism.
-            You are given the following extracted parts of a long document and a question.
-            Provide a conversational answer based on the context provided.
+            You are given the following: conversation so far, extracted parts of a long document and a question.
+            Provide a conversational answer based on the context and conversation provided.
             If the question is about greeting or is off-topic, respond appropriately.
             If you don't know the answer or the context doesn't contain relevant information, just say "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó".
             Always answer in Vietnamese.
             """
-            
-           
 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system),
-                ("user", "Context:\n{context}\n\nQuestion: {question}")
+                ("user", "Conversation:\n{conversation}\n\nContext:\n{context}\n\nQuestion: {question}")
             ])
 
             rag_chain = prompt | llm | StrOutputParser()
 
+            conversation_lines = []
+
+            for msg in chat_history:
+                if msg.type == 'human':
+                    conversation_lines.append(f"Người dùng: {msg.content}")
+                elif msg.type == 'ai':
+                    conversation_lines.append(f"Trợ lý: {msg.content}")
+
+            conversation_str = "\n".join(conversation_lines)
+
             if( topic == "Off_topic" ):
                 prompt_input = {
+                    "conversation": conversation_str,
                     "context": "",
-                    "question": query
+                    "question": standalone_question
                 }
 
                 response = rag_chain.invoke(prompt_input)
                 return response, []
             
             # Retrieve relevant documents
-            context_docs = RAGService.retrieve_documents(retriever, query)
+            context_docs = RAGService.retrieve_documents(retriever, standalone_question)
 
             prompt_input = {
+                "conversation": conversation_str,
                 "context": "\n\n".join([doc.page_content for doc in context_docs]),
-                "question": query
+                "question": standalone_question
             }
 
             response = rag_chain.invoke(prompt_input)
+
+            # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+            # chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
             
             print("\n---------------------Generated response:---------------------\n")
             print(response)
@@ -82,7 +102,7 @@ class RAGService:
             {{"Topic": "Festival", "Location": "Thành phố Hồ Chí Minh"}}
 
             Example 5: "Các cách di chuyển ở Hà Nội"
-            {{"Topic": "Transport", "Location": null}}
+            {{"Topic": "Transport", "Location": "Hà Nội"}}
 
             Example 6: "Tell me a joke."
             {{"Topic": "Off_topic", "Location": null}}
@@ -119,3 +139,30 @@ class RAGService:
 
         except Exception as e:
             raise RuntimeError(f"Document retrieval error: {e}")
+
+    @staticmethod
+    def build_standalone_question(question: str, chat_history: list):
+        contextualize_q_system_prompt = """Given a chat history and the latest user question \
+        which might reference context in the chat history, formulate a standalone question \
+        which can be understood without the chat history. Do NOT answer the question, \
+        just reformulate it if needed and otherwise return it as is."""
+
+        print('---> Chat History:', chat_history)
+        # Create a ChatPromptTemplate for contextualizing the question
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", contextualize_q_system_prompt),  # Set the system prompt
+                MessagesPlaceholder("chat_history"),  # Placeholder for the chat history
+                ("human", "{input}"),  # Placeholder for the user's input question
+            ]
+        )
+
+        # Create the contextualization chain
+        contextualize_q_chain = contextualize_q_prompt | llm_chat() | StrOutputParser()
+
+        # Invoke the chain to get the standalone question
+        standalone_question = contextualize_q_chain.invoke(
+            {"input": question, "chat_history": chat_history}
+        )
+
+        return standalone_question

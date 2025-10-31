@@ -27,7 +27,6 @@ def chat_history_to_messages(retriever: any, question: str, session_id: str, cha
         llm=llm_chat(),  # Pass the language model instance
         retriever=retriever,  # Pass the retriever instance
         prompt=contextualize_q_prompt  # Pass the prompt for contextualizing the question
-        # contextualize_q_prompt=contextualize_q_prompt  # Pass the prompt for contextualizing the question
     )
     
     

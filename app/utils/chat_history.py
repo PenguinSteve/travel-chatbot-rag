@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, AIMessage
 
-def build_chat_history_from_db(messages: list):
+def build_chat_history_from_db(messages: list) -> list:
     chat_history = []
 
     for message in messages:
