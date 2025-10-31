@@ -1,4 +1,5 @@
 from langchain.agents import create_react_agent, AgentExecutor
+from app.repositories.chat_repository import ChatRepository
 from app.repositories.pinecone_repository import PineconeRepository
 from langchain_community.document_compressors import FlashrankRerank
 from app.tools.index import TOOLS
@@ -10,8 +11,9 @@ from app.tools.rag import retrieve_document_rag_wrapper
 
 
 class AgentService:
-    def __init__(self, pinecone_repository: PineconeRepository, flashrank_compressor: FlashrankRerank):
+    def __init__(self, chat_repository: ChatRepository, pinecone_repository: PineconeRepository, flashrank_compressor: FlashrankRerank):
         self.llm = llm_plan()
+        self.chat_repository = chat_repository
         self.prompt = get_react_prompt()
 
         rag_tool = Tool(
@@ -41,6 +43,8 @@ class AgentService:
         self.executor = AgentExecutor(agent=agent, tools=self.TOOLS, verbose=True, handle_parsing_errors=True)
 
 
-    def run_agent(self, question: str):
+    def run_agent(self, session_id: str, question: str):
         result = self.executor.invoke({"input": question})
+        self.chat_repository.save_message(session_id=session_id, message=question, role="human")
+        self.chat_repository.save_message(session_id=session_id, message=result['output'], role="ai")
         return result

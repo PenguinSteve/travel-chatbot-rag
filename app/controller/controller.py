@@ -87,8 +87,8 @@ def ask(payload: AskRequest,
             return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
         
         elif topic == 'Plan':
-            agent_service = AgentService(pinecone_repository, flashrank_compressor)
-            response = agent_service.run_agent(question=payload.message)
+            agent_service = AgentService(chat_repository, pinecone_repository, flashrank_compressor)
+            response = agent_service.run_agent(question=payload.message, session_id=session_id)
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
