@@ -1,6 +1,4 @@
 {
-    "python.analysis.extraPaths": [
-        "./response",
-        "./request"
-    ]
+  "python.analysis.extraPaths": ["./response", "./request"],
+  "postman.settings.dotenv-detection-notification-visibility": false
 }
