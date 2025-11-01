@@ -44,7 +44,7 @@ async def life_span(app: FastAPI):
     app.state.pinecone_repository = None
     if hasattr(app.state, "db"):
         app.state.db.client.close()
-        print("🧹 MongoDB connection closed")
+        print("MongoDB connection closed")
     
 
 app = FastAPI(lifespan=life_span)

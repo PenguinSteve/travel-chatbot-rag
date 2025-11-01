@@ -39,22 +39,19 @@ def ask(payload: AskRequest,
     # Get all history messages from db
     past_messages = chat_repository.get_chat_history(session_id=session_id)
 
-
-
     chat_history = build_chat_history_from_db(past_messages)
-
-    print("Chat history", chat_history)
 
     # Create standalone question from chat history
     standalone_question = RAGService.build_standalone_question(message, chat_history)
+
+    print("\n---------------------Original question---------------------\n")
+    print(message)
 
     print("\n---------------------Standalone question---------------------\n")
     print(standalone_question)
 
     # Classify query to get topic and location
     classify_result = RAGService.classify_query(standalone_question)
-    print("\n---------------------Classify Result---------------------\n")
-    print(classify_result)
 
     topic = classify_result.get("Topic") or None
     location = classify_result.get("Location") or None

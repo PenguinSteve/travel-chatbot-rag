@@ -46,6 +46,9 @@ class RAGService:
 
             conversation_str = "\n".join(conversation_lines)
 
+            print("\n---------------------Conversation so far:---------------------\n")
+            print(conversation_str)
+
             if( topic == "Off_topic" ):
                 prompt_input = {
                     "conversation": conversation_str,
@@ -61,9 +64,15 @@ class RAGService:
                 return response, []
             
             
-            
             # Retrieve relevant documents
             context_docs = RAGService.retrieve_documents(retriever, standalone_question)
+
+            formatted_contexts = []
+            for doc in context_docs:
+                name = doc.metadata.get('Name', 'Không rõ')
+                
+                context_str = f"Tên tài liệu: {name}\nNội dung: {doc.page_content}"
+                formatted_contexts.append(context_str)
 
             prompt_input = {
                 "conversation": conversation_str,
@@ -191,7 +200,7 @@ class RAGService:
         else:
             chat_history_str = "[]"
 
-        print('---> Formatted Chat History:', chat_history_str)
+        print('\n---------------------Formatted Chat History:---------------------\n', chat_history_str)
 
         # Create prompt template for contextualizing question
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
