@@ -30,7 +30,6 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
 
   Your response MUST strictly follow this format, with no extra text, explanations, or greetings.
   
-  Question: Analyze the user's request and sequentially call the required tools
   Thought: Reflect on what to do next. Do I need to use a tool?
   Action: the action to take, should be one of [{tool_names}]
   Action Input: JSON input for that tool

@@ -120,11 +120,3 @@ def weather_forecast(city: str, start_date: str, end_date: str, lang: str = "vi"
     }
     return normalized
 
-
-# if __name__ == "__main__":
-#     city = "Ho Chi Minh"
-#     start_date = "2025-10-25"
-#     end_date = "2025-10-30"
-#     forecast = weather_forecast(city, start_date, end_date)
-#     print(forecast)
-    

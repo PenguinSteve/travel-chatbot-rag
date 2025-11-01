@@ -21,13 +21,13 @@ weather_tool = Tool.from_function(
 summarization_tool = Tool.from_function(
     func=summarize_text,
     name="summarization_tool",
-    description=(
-            "Combine all gathered trip data (food, accommodation, attractions, and weather) "
-            "into one friendly, concise Vietnamese travel itinerary. "
-            "Input: one long text string containing the collected travel information. "
-            "Output: a natural, day-by-day trip summary in Markdown — "
-            "realistic, informative, and written in the tone of a local tour guide. "
-            "Do not invent new information or add facts not present in the input."
-        )
+    description = (
+        "Summarize and synthesize all collected trip information — including food, accommodation, "
+        "attractions, and weather — into one coherent Vietnamese travel itinerary. "
+        "Input: a single long text containing raw travel details gathered from previous tools. "
+        "Task: distill this information into a concise, natural day-by-day trip summary written in Markdown. "
+        "The tone should resemble a friendly, knowledgeable local tour guide. "
+        "Do not fabricate or add new information beyond what is provided."
+    )
 )
 TOOLS = [weather_tool, summarization_tool]

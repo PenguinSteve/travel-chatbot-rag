@@ -88,7 +88,7 @@ def ask(payload: AskRequest,
         
         elif topic == 'Plan':
             agent_service = AgentService(chat_repository, pinecone_repository, flashrank_compressor)
-            response = agent_service.run_agent(question=payload.message, session_id=session_id)
+            response = agent_service.run_agent(question=standalone_question, session_id=session_id)
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :

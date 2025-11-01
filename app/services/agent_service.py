@@ -25,11 +25,11 @@ class AgentService:
             description=(
                 "Retrieve detailed travel information from the RAG knowledge base for a given topic "
                 "in one of the supported cities (Thành phố Hồ Chí Minh, Đà Nẵng, or Hà Nội). "
-                "Use this tool to collect accurate local data about food, accommodations, or attractions "
+                "Use this tool to collect accurate local data about food, accommodations "
                 "before generating the trip itinerary. "
                 "Input must be a JSON object in the following format: "
                 "{ "
-                '"topic": "Food" | "Accommodation" | "Attraction", '
+                '"topic": "Food" | "Accommodation" '
                 '"location": "Supported city or mapped district name", '
                 '"query": "Short, focused question combining topic and location" '
                 "}. "
@@ -41,7 +41,7 @@ class AgentService:
         self.TOOLS = TOOLS + [rag_tool]
 
         agent = create_react_agent(llm=self.llm, tools=self.TOOLS, prompt=self.prompt)
-        self.executor = AgentExecutor(agent=agent, tools=self.TOOLS, verbose=True, handle_parsing_errors=True)
+        self.executor = AgentExecutor(agent=agent, tools=self.TOOLS, verbose=True, handle_parsing_errors=True, max_execution_time=30, max_iterations=5)
 
 
     def run_agent(self, session_id: str, question: str):
