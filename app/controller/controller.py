@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pymongo import MongoClient
+from app.config.mongodb import get_database
 from app.models.chat_schema import ChatMessage
 from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
@@ -34,13 +35,11 @@ def ask(payload: AskRequest,
 
     chat_repository = ChatRepository(mongodb_instance)
 
-    print("Check repository")
 
     # Get all history messages from db
     past_messages = chat_repository.get_chat_history(session_id=session_id)
 
 
-    print("Past messages from DB:", past_messages)
 
     chat_history = build_chat_history_from_db(past_messages)
 
@@ -56,7 +55,6 @@ def ask(payload: AskRequest,
     classify_result = RAGService.classify_query(standalone_question)
     print("\n---------------------Classify Result---------------------\n")
     print(classify_result)
-    print("\n---------------------End of Classify Result---------------------\n")
 
     topic = classify_result.get("Topic") or None
     location = classify_result.get("Location") or None
@@ -110,3 +108,14 @@ def ask(payload: AskRequest,
 @router.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@router.get("/health/db")
+def check_database(request: Request):
+    print("\n---------------------Checking Database Connection---------------------\n")
+    try:
+        db = request.app.state.db 
+        db.command("ping")       
+        return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {e}")

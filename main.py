@@ -31,7 +31,7 @@ async def life_span(app: FastAPI):
         print('\n---------------------Initialized Pinecone repository with vector store---------------------\n')
 
         # Initialize Flashrank compressor
-        app.state.flashrank_compressor = FlashrankRerank(top_n=5)
+        app.state.flashrank_compressor = FlashrankRerank(top_n=5, model="ms-marco-MiniLM-L-12-v2")
         print('\n---------------------Initialized Flashrank compressor---------------------\n')
 
     except Exception as e:

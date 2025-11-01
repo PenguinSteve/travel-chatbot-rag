@@ -29,7 +29,7 @@ class AgentService:
                 "before generating the trip itinerary. "
                 "Input must be a JSON object in the following format: "
                 "{ "
-                '"topic": "Food" | "Accommodation" '
+                '"topic": "Food" | "Accommodation"'
                 '"location": "Supported city or mapped district name", '
                 '"query": "Short, focused question combining topic and location" '
                 "}. "
@@ -41,7 +41,7 @@ class AgentService:
         self.TOOLS = TOOLS + [rag_tool]
 
         agent = create_react_agent(llm=self.llm, tools=self.TOOLS, prompt=self.prompt)
-        self.executor = AgentExecutor(agent=agent, tools=self.TOOLS, verbose=True, handle_parsing_errors=True, max_execution_time=30, max_iterations=5)
+        self.executor = AgentExecutor(agent=agent, tools=self.TOOLS, verbose=True, handle_parsing_errors=True)
 
 
     def run_agent(self, session_id: str, question: str):
