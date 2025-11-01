@@ -1,52 +1,77 @@
 from app.models.schedule_schema import ScheduleItem
 from app.repositories.schedule_repository import ScheduleRepository
 from app.config.mongodb import get_database
+import json
+from datetime import datetime
 
-def schedule_trip(trip_details: ScheduleItem):
+def schedule_trip(trip_details):
     db = get_database()
     schedule_repo = ScheduleRepository(db)
-    print('Creating schedule for trip:', trip_details.trip_id)
     schedule_repo.create_schedule(trip_details)
-    print('Schedule created successfully.')
+    print("Schedule created successfully.")
 
-if __name__ == "__main__":
-    sample_trip = ScheduleItem(
-        user_id="123456",
-        trip_id="trip123",
-        location="Paris",
-        duration_days=5,
-        start_date="2024-09-01T00:00:00Z",
-        end_date="2024-09-06T00:00:00Z",
-        weather_summary={
-            "avg_temp": 20.5,
-            "condition": "Sunny",
-            "notes": "Perfect weather for sightseeing."
-        },
-        itinerary=[
-            {
-                "day": 1,
-                "title": "Arrival and City Tour",
-                "activities": [
-                    {
-                        "time_start": "10:00",
-                        "time_end": "12:00",
-                        "description": "Visit the Eiffel Tower",
-                        "type": "Attraction"
-                    },
-                    {
-                        "time_start": "13:00",
-                        "time_end": "14:00",
-                        "description": "Lunch at local cafe",
-                        "type": "Food"
-                    }
-                ]
-            }
-        ],
-        accommodation={
-            "address": "123 Paris St, Paris, France",
-            "price_range": "500000",
-            "notes": "Close to major attractions."
-        },
-        tips=["Buy tickets in advance", "Use public transport"]
-    )
-    schedule_trip(sample_trip)
+
+# if __name__ == "__main__":
+#     sample_trip = """
+#     {
+#   "user_id": "user_123",
+#   "trip_id": "trip_20251102_001",
+#   "location": "Thành phố Hồ Chí Minh",
+#   "duration_days": 1,
+#   "start_date": "2025-11-02T00:00:00Z",
+#   "end_date": "2025-11-02T23:59:59Z",
+#   "weather_summary": {
+#     "avg_temp": 27.0,
+#     "condition": "Mưa rào nhẹ hoặc nắng hạt",
+#     "notes": "Mang áo mưa nhẹ và giày thoải mái"
+#   },
+#   "itinerary": [
+#     {
+#       "day": 1,
+#       "title": "Khám phá Sài Gòn trong một ngày",
+#       "activities": [
+#         {
+#           "time_start": "08:00",
+#           "time_end": "10:30",
+#           "description": "Đi bộ dọc các con phố cổ Quận 1, ngắm kiến trúc và ghé cà phê",
+#           "type": "Attraction"
+#         },
+#         {
+#           "time_start": "11:00",
+#           "time_end": "12:00",
+#           "description": "Ăn trưa: phở hoặc bánh mì tại quán ăn đường phố",
+#           "type": "Food"
+#         },
+#         {
+#           "time_start": "13:00",
+#           "time_end": "15:30",
+#           "description": "Tham quan chợ, trung tâm thương mại hoặc công trình lịch sử tùy sở thích",
+#           "type": "Attraction"
+#         },
+#         {
+#           "time_start": "18:00",
+#           "time_end": "20:00",
+#           "description": "Bữa tối: bánh xèo, bún bò hoặc mì vịt tiềm tại quán địa phương",
+#           "type": "Food"
+#         },
+#         {
+#           "time_start": "20:30",
+#           "time_end": "22:00",
+#           "description": "Thưởng thức cà phê Sài Gòn truyền thống, kết thúc ngày",
+#           "type": "Food"
+#         }
+#       ]
+#     }
+#   ],
+#   "accommodation": {
+#     "address": "19-23 Lam Son Square, Bến Nghé Ward, District 1, Thành phố Hồ Chí Minh",
+#     "price_range": "mid-range",
+#     "notes": "Khách sạn Rex Hotel Saigon, thuận tiện cho di chuyển"
+#   },
+#   "tips": [
+#     "Mang áo mưa nhẹ và ô dù vì có khả năng mưa rào.",
+#     "Đặt phòng và bàn ăn trước để tránh chờ đợi."
+#   ]
+# }
+#     """
+#     schedule_trip(sample_trip)

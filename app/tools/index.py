@@ -1,6 +1,7 @@
 from langchain.tools import Tool
 from app.tools.weather import weather_tool_wrapper
 from app.tools.summary import summarize_text
+from app.tools.schedule import schedule_trip
 
 weather_tool = Tool.from_function(
     func=weather_tool_wrapper,
@@ -30,4 +31,15 @@ summarization_tool = Tool.from_function(
         "Do not fabricate or add new information beyond what is provided."
     )
 )
-TOOLS = [weather_tool, summarization_tool]
+
+schedule_tool = Tool.from_function(
+    func=schedule_trip,
+    name="schedule_tool",
+    description=(
+        "Create a new travel schedule and save it to MongoDB. "
+        "Input must be a JSON object containing details such as user_id, trip_id, location, "
+        "start_date, end_date, itinerary, weather_summary, and accommodation."
+    )
+)
+
+TOOLS = [weather_tool, summarization_tool, schedule_tool]
