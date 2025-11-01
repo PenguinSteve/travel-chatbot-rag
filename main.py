@@ -21,21 +21,21 @@ async def life_span(app: FastAPI):
         # Initalize MongoDB connection
         db = get_database()
         app.state.db = db
-        print('Connected to MongoDB database:', db.name)
+        print('\n---------------------Connected to MongoDB database---------------------\n', db.name)
         
         # Initialize vector store
         vector_store = PineconeConfig().get_vector_store()
 
         # Initialize pinecone repository
         app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
-        print('Initialized Pinecone repository with vector store.')
+        print('\n---------------------Initialized Pinecone repository with vector store---------------------\n')
 
         # Initialize Flashrank compressor
         app.state.flashrank_compressor = FlashrankRerank(top_n=5)
-        print('Initialized Flashrank compressor.')
+        print('\n---------------------Initialized Flashrank compressor---------------------\n')
 
     except Exception as e:
-        raise RuntimeError(f"Failed to create vector_store/Pinecone repository at start up: {e}")
+        raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")
 
     yield
 
