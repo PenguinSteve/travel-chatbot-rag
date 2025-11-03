@@ -193,6 +193,7 @@ class RAGService:
         contextualize_q_system_prompt = """Bạn là một trợ lý AI chuyên viết lại câu hỏi. Nhiệm vụ duy nhất của bạn là lấy Lịch sử trò chuyện và Câu hỏi mới, sau đó tạo ra một "Câu hỏi độc lập" (standalone question) duy nhất có thể hiểu được mà không cần lịch sử.
 
             QUY TẮC TUYỆT ĐỐI:
+            - Nếu câu hỏi là một lời chào hoặc không liên quan đến du lịch thì câu hỏi độc lập chính là câu hỏi mới.
             - KHÔNG BAO GIỜ được trả lời câu hỏi.
             - CHỈ được xuất ra (output) câu hỏi độc lập đã được viết lại.
             - Nếu câu hỏi mới đã đủ nghĩa, hãy lặp lại y hệt.
