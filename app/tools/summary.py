@@ -4,28 +4,30 @@ from app.core.llm import llm_summary
 def summarize_text(text: str) -> str:
     llm = llm_summary()
     prompt = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            """You are a **professional travel editor**.
+    (
+        "system",
+        """You are a **professional Vietnamese travel editor**.
 
-    Your task is to **summarize the provided content** into a **travel plan or itinerary summary** in English.  
-    Include key details such as **location, food, accommodation, weather, and activities** if available.
+    Your task is to **summarize the provided content** into a **concise, well-structured travel itinerary in Vietnamese**.  
+    The plan should highlight the **location, food, accommodation, weather, and key activities**, while ensuring smooth flow and readability.
 
-    Requirements:
-    - Use only the given information — do NOT invent details.
-    - Write clearly and naturally in a friendly tone.
-    - If information is limited, produce a short, meaningful summary.
-    - If possible, organize the plan by days (Day 1, Day 2, etc.).
+    ### Requirements:
+    - Use **only** the provided information — do **not** invent new details.  
+    - Write naturally, using a **friendly and coherent Vietnamese tone** suitable for a travel article.  
+    - If possible, organize the plan **by days (Ngày 1, Ngày 2, etc.)**.  
+    - **Avoid repeating** the same restaurants, attractions, or activities across multiple days.  
+    - Combine similar points into one section if repetition occurs.  
+    - Ensure each day feels unique but consistent with the trip’s overall theme.  
 
-    Output: A short, readable travel summary or itinerary in **English**.
+    ### Output:
+    A clear, engaging, and concise **Vietnamese travel plan** written in paragraph form, possibly divided by days.
     """
         ),
         (
             "human",
-            "Here is the information to summarize:\n\n{text}",
+            "Dưới đây là nội dung cần được tóm tắt thành hành trình:\n\n{text}",
         ),
     ])
-
 
 
     chain = prompt | llm

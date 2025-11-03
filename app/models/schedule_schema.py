@@ -23,6 +23,7 @@ class Itinerary(BaseModel):
 
 
 class Accommodation(BaseModel): 
+    name: str
     address: str
     price_range: str
     notes: Optional[str] = None
