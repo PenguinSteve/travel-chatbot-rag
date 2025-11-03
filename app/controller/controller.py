@@ -63,7 +63,7 @@ def ask(payload: AskRequest,
         filter["Location"] = location
 
     # Get retriever from Pinecone repository
-    retriever = pinecone_repository.get_retriever(k=10, filter=filter)
+    retriever = pinecone_repository.get_retriever(k=20, filter=filter)
 
     # Create compression retriever
     flashrank_compressor = flashrank_compressor
