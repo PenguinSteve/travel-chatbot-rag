@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pymongo import MongoClient
-from app.config.mongodb import get_database
 from app.models.chat_schema import ChatMessage
 from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
@@ -87,7 +86,7 @@ def ask(payload: AskRequest,
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
-            response_text, context_docs = RAGService.generate_groq_response(compression_retriever, payload, standalone_question, chat_history, topic, location, chat_repository)
+            response_text, context_docs = RAGService.generate_response(compression_retriever, payload, standalone_question, chat_history, topic, location, chat_repository)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 

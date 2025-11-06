@@ -2,8 +2,6 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     GROQ_API_KEY: str
-    LLM_MODEL_CHAT: str
-    LLM_MODEL_SUMMARY: str 
     EMBEDDING_MODEL: str = "hiieu/halong_embedding"
     PINECONE_API_KEY: str
     PINECONE_INDEX_NAME: str = "rag-tourism"
@@ -18,7 +16,20 @@ class Settings(BaseSettings):
     WEATHER_API_KEY: str
     MONGO_DB_NAME: str
     MONGO_DB_PASSWORD: str 
+    LLM_MODEL_SUMMARY: str
     # LLM_MODEL: str = "openai/gpt-oss-120b"
+
+    # LLM MODELS FOR RAG SYSTEM
+    LLM_MODEL_RAG: str = "openai/gpt-oss-120b"
+    LLM_MODEL_CLASSIFY: str = "llama-3.1-8b-instant"
+    LLM_MODEL_CREATE_STANDALONE_QUESTION: str = "llama-3.1-8b-instant"
+
+    # LLM MODELS FOR EVALUATION
+    LLM_MODEL_EVALUATE: str = "openai/gpt-oss-20b"
+    GROQ_API_KEY_FAITHFULNESS: str
+    GROQ_API_KEY_RELEVANCE: str
+    GROQ_API_KEY_PRECISION: str
+    GROQ_API_KEY_RECALL: str
 
     class Config:
         env_file = ".env"

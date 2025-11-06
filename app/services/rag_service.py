@@ -1,25 +1,21 @@
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from app.config.settings import settings
-from app.core.llm import llm_chat
+from app.core.llm import llm_create_standalone_question, llm_rag, llm_classify
 import os
 from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
 from app.request.AskRequest import ChatRequest
 
-GROQ_API_KEY = settings.GROQ_API_KEY
-LLM_MODEL = settings.LLM_MODEL
-
 class RAGService:
     
     @staticmethod
-    def generate_groq_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topic: str = None, location: str = None, chat_repository: ChatRepository = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topic: str = None, location: str = None, chat_repository: ChatRepository = None):
         try:
             message = payload.message
             session_id = payload.session_id
 
-            llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
+            llm = llm_rag()
 
             system = """### Role and Goal
                 You are an AI assistant specializing in tourism. Your persona is friendly, helpful, and **extremely accurate**.
@@ -128,33 +124,40 @@ class RAGService:
     @staticmethod
     def classify_query(query: str):
         try:
-            llm = ChatGroq(model=LLM_MODEL, temperature=0, api_key=GROQ_API_KEY)
+            llm = llm_classify()
 
             system = """You are a classifier assistant. Based on the user's question, extract the 'topic' and 'location'.
             The 'topic' must be one of: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Off_topic', 'Plan'].
             The 'location' must be one of: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
+            If the question is not mention any of the above locations, return null for 'location'.
             If a value is not mentioned, return null for that key.
             Respond ONLY with a valid JSON object.
 
-            Example 1: "Quán phở nào ngon ở Hà Nội?"
+            Example 1: "Khách sạn nào tốt?"
+            {{"Topic": "Accommodation", "Location": null}}
+
+            Example 2: "Món bún bò Huế có ngon không?"
+            {{"Topic": "Food", "Location": null}}
+
+            Example 3: "Món bún nêm có gì đặc trưng và quán nào ngon?"
+            {{"Topic": "Food", "Location": null}}
+
+            Example 4: "Quán phở nào ngon ở Hà Nội?"
             {{"Topic": "Food", "Location": "Hà Nội"}}
 
-            Example 2: "Khách sạn nào tốt?"
-            {{"Topic": "Accommodation", "Location": null}}
-            
-            Example 3: "Thời gian tốt để thăm Đà Nẵng là khi nào?"
+            Example 5: "Thời gian tốt để thăm Đà Nẵng là khi nào?"
             {{"Topic": "General", "Location": "Đà Nẵng"}}
-            
-            Example 4: "Tôi muốn biết về các lễ hội ở Thành phố Hồ Chí Minh."
+
+            Example 6: "Tôi muốn biết về các lễ hội ở Thành phố Hồ Chí Minh."
             {{"Topic": "Festival", "Location": "Thành phố Hồ Chí Minh"}}
 
-            Example 5: "Các cách di chuyển ở Hà Nội"
+            Example 7: "Các cách di chuyển ở Hà Nội"
             {{"Topic": "Transport", "Location": "Hà Nội"}}
 
-            Example 6: "Tell me a joke."
+            Example 8: "Tell me a joke."
             {{"Topic": "Off_topic", "Location": null}}
 
-            Example 7: "Xin chào!"
+            Example 9: "Xin chào!"
             {{"Topic": "Off_topic", "Location": null}}
             """
 
@@ -244,7 +247,7 @@ class RAGService:
         )
 
         # Create the chain for generating standalone question
-        contextualize_q_chain = contextualize_q_prompt | llm_chat() | StrOutputParser()
+        contextualize_q_chain = contextualize_q_prompt | llm_create_standalone_question() | StrOutputParser()
 
         standalone_question = contextualize_q_chain.invoke(
             {

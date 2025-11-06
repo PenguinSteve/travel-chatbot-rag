@@ -2,6 +2,8 @@ import requests
 import time
 import csv
 from datetime import datetime
+from langchain.evaluation import FaithfulnessEvaluator, AnswerRelevancyEvaluator
+
 
 # ====== Cấu hình ======
 FILE_PATH = "./evaluate/hanoi.txt"   # file chứa danh sách câu hỏi
