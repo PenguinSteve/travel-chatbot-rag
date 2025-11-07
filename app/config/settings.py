@@ -14,8 +14,6 @@ class Settings(BaseSettings):
     LLM_TIMEOUT: int = 60
     OPEN_WEATHER_API_KEY: str
     WEATHER_API_KEY: str
-    MONGO_DB_NAME: str
-    MONGO_DB_PASSWORD: str 
     LLM_MODEL_SUMMARY: str
     # LLM_MODEL: str = "openai/gpt-oss-120b"
 
@@ -30,6 +28,11 @@ class Settings(BaseSettings):
     GROQ_API_KEY_RELEVANCE: str
     GROQ_API_KEY_PRECISION: str
     GROQ_API_KEY_RECALL: str
+
+    # DATABASE SETTINGS
+    MONGO_DB_NAME: str
+    MONGO_DB_PASSWORD: str 
+    MONGO_STORE_COLLECTION_NAME: str = "documents"
 
     class Config:
         env_file = ".env"

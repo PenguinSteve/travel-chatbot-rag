@@ -1,5 +1,5 @@
 from langchain_groq import ChatGroq
-from store_data import connect_to_pinecone
+from ingestion.store_data import connect_to_pinecone
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv

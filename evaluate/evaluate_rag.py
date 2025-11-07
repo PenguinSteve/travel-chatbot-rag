@@ -83,6 +83,9 @@ class RAGEvaluation:
             context_str = f"Tên tài liệu: {name}\nNội dung: {doc.page_content}"
             formatted_contexts.append(context_str)
 
+        print(f"\nRetrieved {len(formatted_contexts)} context documents for question: {question}")
+        print(f"\nContexts:\n" + "\n\n".join(formatted_contexts))
+
         prompt_input = {
             "context": "\n\n".join(formatted_contexts),
             "question": question
