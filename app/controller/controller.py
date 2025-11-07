@@ -5,13 +5,13 @@ from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from app.core.dependencies import get_mongodb_instance, get_pinecone_repository
-from app.core.dependencies import get_flashrank_compressor
+from app.core.dependencies import get_mongodb_instance, get_pinecone_repository, get_parent_document_retriever, get_flashrank_compressor
 from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ContextualCompressionRetriever
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
 from app.utils.chat_history import build_chat_history_from_db
+from langchain.retrievers import ParentDocumentRetriever
 
 router = APIRouter()
 
@@ -20,7 +20,9 @@ router = APIRouter()
 def ask(payload: AskRequest, 
         pinecone_repository: PineconeRepository = Depends(get_pinecone_repository),
         flashrank_compressor: FlashrankRerank = Depends(get_flashrank_compressor),
-        mongodb_instance: MongoClient = Depends(get_mongodb_instance)):
+        mongodb_instance: MongoClient = Depends(get_mongodb_instance),
+        parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+        ):
 
     print("\n---------------------Received Ask Request---------------------\n" \
     "Payload:", payload)
@@ -62,12 +64,12 @@ def ask(payload: AskRequest,
         filter["Location"] = location
 
     # Get retriever from Pinecone repository
-    retriever = pinecone_repository.get_retriever(k=20, filter=filter)
+    parent_document_retriever.search_kwargs["filter"] = filter
 
     # Create compression retriever
     flashrank_compressor = flashrank_compressor
     compression_retriever = ContextualCompressionRetriever(
-        base_retriever=retriever,
+        base_retriever=parent_document_retriever,
         base_compressor=flashrank_compressor
     )
 

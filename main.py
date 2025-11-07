@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.controller import controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
-from app.config.mongodb import get_database
+from app.config.mongodb import get_database, get_docstore
 from langchain_community.document_compressors import FlashrankRerank
-
+from langchain.retrievers import ParentDocumentRetriever
 
 import os
 from dotenv import load_dotenv
@@ -33,6 +34,19 @@ async def life_span(app: FastAPI):
         # Initialize Flashrank compressor
         app.state.flashrank_compressor = FlashrankRerank(top_n=10, model="ms-marco-MiniLM-L-12-v2")
         print('\n---------------------Initialized Flashrank compressor---------------------\n')
+
+        # Initialize Docstore mongodb
+        docstore = get_docstore()
+        app.state.docstore = docstore
+        print('\n---------------------Initialized MongoDB docstore---------------------\n')
+
+        # Initialize ParentDocumentRetriever
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=100,
+            separators=["\n\n", "\n", ". ", " ", ""])
+
+        app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore, child_splitter=child_splitter, vectorstore=vector_store, search_kwargs={"k":10, "filter":{}})
 
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")
