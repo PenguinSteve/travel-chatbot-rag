@@ -28,7 +28,7 @@ class RAGEvaluation:
             db_name=settings.MONGO_DB_NAME,
             collection_name=settings.MONGO_STORE_COLLECTION_NAME
         )
-        self.flashrank_comp = FlashrankRerank(top_n=3, model="ms-marco-MiniLM-L-12-v2")
+        self.flashrank_comp = FlashrankRerank(top_n=5, model="ms-marco-MiniLM-L-12-v2")
         self.llm_rag_eval_faithfulness = llm_evaluate_faithfulness()
         self.llm_rag_eval_relevance = llm_evaluate_relevance()
         self.llm_rag_eval_precision = llm_evaluate_precision()
@@ -240,14 +240,16 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
     print("Loading evaluation dataset from:", input_path)
     df = pd.read_excel(input_path).fillna("")
 
+    df = df[30:]  # Chạy thử từ dòng 102 đến hết
+    
+    # print(df)
+
     print("Initializing RAG evaluation components...")
     RAGEvaluation_instance = RAGEvaluation()
 
     results = []
 
-    # df = df[102:]  # Chạy thử từ dòng 102 đến hết
     
-    # print(df)
     try:
         for index, row in df.iterrows():
             question = str(row.get("Question", ""))
