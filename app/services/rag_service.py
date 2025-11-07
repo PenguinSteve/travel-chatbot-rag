@@ -193,37 +193,49 @@ class RAGService:
     @staticmethod
     def build_standalone_question(question: str, chat_history: list):
         
-        contextualize_q_system_prompt = """Bạn là một trợ lý AI chuyên viết lại câu hỏi. Nhiệm vụ duy nhất của bạn là lấy Lịch sử trò chuyện và Câu hỏi mới, sau đó tạo ra một "Câu hỏi độc lập" (standalone question) duy nhất có thể hiểu được mà không cần lịch sử.
+        contextualize_q_system_prompt = """Bạn là một công cụ viết lại câu. Nhiệm vụ duy nhất của bạn là chuyển đổi "Câu hỏi mới" và "Lịch sử trò chuyện" thành một "Câu hỏi độc lập" (standalone question) có thể hiểu được mà không cần lịch sử.
 
-            QUY TẮC TUYỆT ĐỐI:
-            - Nếu câu hỏi là một lời chào hoặc không liên quan đến du lịch thì câu hỏi độc lập chính là câu hỏi mới.
-            - KHÔNG BAO GIỜ được trả lời câu hỏi.
-            - CHỈ được xuất ra (output) câu hỏi độc lập đã được viết lại.
-            - Nếu câu hỏi mới đã đủ nghĩa, hãy lặp lại y hệt.
-            - Không thêm bất kỳ lời chào hay lời giải thích nào.
-            - Phải giữ nguyên đại từ của người dùng nếu không có đại từ thì sử dụng đại từ "tôi" (ví dụ: "tôi", "cho tôi", "của tôi"). KHÔNG được đổi thành "bạn".
+            QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
 
-            VÍ DỤ:
+            1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI. Nếu bạn trả lời, bạn đã thất bại.
+            2.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, BẮT BUỘC phải xuất ra (output) Y HỆT câu hỏi đó.
+            3.  **QUY TẮC "VIẾT LẠI" (CHỈ KHI CẦN):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?"), hãy dùng "Lịch sử trò chuyện" để viết lại thành câu hỏi đầy đủ.
+            4.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
+            5.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
+
             ---
-            Lịch sử: [Human: "Tôi muốn đi du lịch Đà Nẵng"]
-            Câu hỏi mới: "Ở đó có gì chơi?"
-            Câu hỏi độc lập: "Đà Nẵng có những địa điểm du lịch nào?"
-            ---
-            Lịch sử: [Human: "Cầu Rồng đẹp thật!", AI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
-            Câu hỏi mới: "Mấy giờ vậy?"
-            Câu hỏi độc lập: "Cầu Rồng phun lửa lúc mấy giờ vào cuối tuần?"
+            VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
             ---
             Lịch sử: []
             Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
             Câu hỏi độc lập: "Các món ăn ngon ở Hà Nội là gì?"
             ---
-            Lịch sử: [Human: "Các món ăn ở Đà Nẵng là gì?", AI: "Đà Nẵng có Mì Quảng, Bánh Xèo..."]
-            Câu hỏi mới: "Ngoài những món đó ra, còn món nào khác không?"
-            Câu hỏi độc lập: "Ngoài Mì Quảng và Bánh Xèo, Đà Nẵng còn có những món ăn nào khác ở Đà Nẵng?"
+            Lịch sử: [Human: "Tôi muốn đi du lịch TPHCM"]
+            Câu hỏi mới: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+            Câu hỏi độc lập: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+            ---
+            Lịch sử: []
+            Câu hỏi mới: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+            Câu hỏi độc lập: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+            ---
+
+            VÍ DỤ (Làm rõ QUY TẮC "VIẾT LẠI"):
+            ---
+            Lịch sử: [Human: "Tôi muốn đi du lịch Huế"]
+            Câu hỏi mới: "Ở đó có gì chơi?"
+            Câu hỏi độc lập: "Huế có những địa điểm du lịch nào?"
+            ---
+            Lịch sử: [Human: "Tôi muốn đi Huế"]
+            Câu hỏi mới: "lên kế hoạch du lịch 2 ngày"
+            Câu hỏi độc lập: "Lên kế hoạch du lịch Huế 2 ngày cho tôi"
+            ---
+            Lịch sử: [Human: "Cầu Rồng đẹp thật!", AI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
+            Câu hỏi mới: "Mấy giờ vậy?"
+            Câu hỏi độc lập: "Cầu Rồng phun lửa lúc mấy giờ vào cuối tuần?"
             ---
 
             Bây giờ, hãy thực hiện nhiệm vụ cho Lịch sử và Câu hỏi mới dưới đây:
-            """
+        """
 
         history_lines = []
         for msg in chat_history:

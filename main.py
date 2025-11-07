@@ -32,7 +32,7 @@ async def life_span(app: FastAPI):
         print('\n---------------------Initialized Pinecone repository with vector store---------------------\n')
 
         # Initialize Flashrank compressor
-        app.state.flashrank_compressor = FlashrankRerank(top_n=10, model="ms-marco-MiniLM-L-12-v2")
+        app.state.flashrank_compressor = FlashrankRerank(top_n=3, model="ms-marco-MiniLM-L-12-v2")
         print('\n---------------------Initialized Flashrank compressor---------------------\n')
 
         # Initialize Docstore mongodb
@@ -46,7 +46,8 @@ async def life_span(app: FastAPI):
             chunk_overlap=100,
             separators=["\n\n", "\n", ". ", " ", ""])
 
-        app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore, child_splitter=child_splitter, vectorstore=vector_store, search_kwargs={"k":10, "filter":{}})
+        app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore, child_splitter=child_splitter, vectorstore=vector_store, search_kwargs={"k":20, "filter":{}})
+        print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
 
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")

@@ -1,25 +1,44 @@
 import os
 import pandas as pd
 from typing import List, Dict, Any
-
+from app.config.settings import settings
 from app.config.vector_database_pinecone import PineconeConfig
 from app.services.rag_service import RAGService
 from app.core.llm import llm_rag, llm_evaluate_faithfulness, llm_evaluate_relevance, llm_evaluate_precision, llm_evaluate_recall
-from app.repositories.pinecone_repository import PineconeRepository
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_community.document_compressors import FlashrankRerank
-
+from langchain_community.storage import MongoDBStore
+from langchain.retrievers import ParentDocumentRetriever
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 class RAGEvaluation:
+    CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
+
+    child_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=100,
+        separators=["\n\n", "\n", ". ", " ", ""]
+    )
+
     def __init__(self):
         vector_store = PineconeConfig().get_vector_store()
-        self.pinecone_repo = PineconeRepository(vector_store=vector_store)
-        self.flashrank_comp = FlashrankRerank(top_n=10, model="ms-marco-MiniLM-L-12-v2")
+        self.docstore = MongoDBStore(
+            connection_string=self.CONNECTION_STRING,
+            db_name=settings.MONGO_DB_NAME,
+            collection_name=settings.MONGO_STORE_COLLECTION_NAME
+        )
+        self.flashrank_comp = FlashrankRerank(top_n=3, model="ms-marco-MiniLM-L-12-v2")
         self.llm_rag_eval_faithfulness = llm_evaluate_faithfulness()
         self.llm_rag_eval_relevance = llm_evaluate_relevance()
         self.llm_rag_eval_precision = llm_evaluate_precision()
         self.llm_rag_eval_recall = llm_evaluate_recall()
+        self.parent_document_retriever = ParentDocumentRetriever(
+            docstore=self.docstore,
+            child_splitter=self.child_splitter,
+            vectorstore=vector_store,
+            search_kwargs={"k":20, "filter":{}}
+        )
 
     # Implement RAG response generation for evaluation
     def generate_response(self, retriever, question: str, topic, location) -> str:
@@ -226,12 +245,10 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
     results = []
 
-    df = df[len(df)-1:]  # Chạy thử từ dòng 102 đến hết
+    # df = df[len(df)-1:]  # Chạy thử từ dòng 102 đến hết
     
     # print(df)
     try:
-        
-
         for index, row in df.iterrows():
             question = str(row.get("Question", ""))
             groundTruth = str(row.get("GroundTruth", ""))
@@ -247,19 +264,25 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
             if location:
                 filter["Location"] = location
 
-            retriever = RAGEvaluation_instance.pinecone_repo.get_retriever(k=20, filter=filter)
+            # Initialize retriever with filter
+            retriever = RAGEvaluation_instance.parent_document_retriever
+            retriever.search_kwargs["filter"] = filter
+
+            # Initialize compression retriever
             flashrank_compressor = RAGEvaluation_instance.flashrank_comp
             compression_retriever = ContextualCompressionRetriever(
                 base_retriever=retriever,
                 base_compressor=flashrank_compressor
             )
 
+            # Generate response
             if topic != 'Plan' :
                 answer, context_docs = RAGEvaluation_instance.generate_response(compression_retriever, question, topic, location)
             else:
                 answer = "N/A for planning questions in this evaluation."
                 context_docs = []
 
+            # Prepare context string
             formatted_contexts = []
             for doc in context_docs:
                 name = doc.metadata.get('Name', 'Không rõ')
@@ -269,30 +292,35 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             context_combined = "\n\n".join(formatted_contexts)
 
+            # Evaluate metrics faithfulness
             faithfulness_result = RAGEvaluation_instance.evaluate_faithfulness(
                 question, answer, context_combined
             )
             print(f"\nEvaluated row {index + 1}: Faithfulness score = {faithfulness_result.get('score') or 'N/A'}")
             print(f"Faithfulness explanation: {faithfulness_result.get('explanation') or ''}")
 
+            # Evaluate metrics relevance
             relevance_result = RAGEvaluation_instance.evaluate_answer_relevance(
                 question, answer
             )
             print(f"\nEvaluated row {index + 1}: Relevance score = {relevance_result.get('score') or 'N/A'}")
             print(f"Relevance explanation: {relevance_result.get('explanation') or ''}")
 
+            # Evaluate metrics context precision and recall
             precision_result = RAGEvaluation_instance.evaluate_context_precision(
                 question, context_combined, answer
             )
             print(f"\nEvaluated row {index + 1}: Context Precision score = {precision_result.get('score') or 'N/A'}")
             print(f"Context Precision explanation: {precision_result.get('explanation') or ''}")
 
+            # Evaluate context recall
             recall_result = RAGEvaluation_instance.evaluate_context_recall(
                 question, context_combined, groundTruth
             )
             print(f"\nEvaluated row {index + 1}: Context Recall score = {recall_result.get('score') or 'N/A'}")
             print(f"Context Recall explanation: {recall_result.get('explanation') or ''}")
 
+            # Store results
             results.append({
                 "Question": question,
                 "GroundTruth": groundTruth,
@@ -320,6 +348,6 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 # --- --------------- Example usage --------------- ---
 if __name__ == "__main__":
     
-    input_path = "./evaluate/data_evaluate_DaNang.xlsx"
+    input_path = "./evaluate/data/data_evaluate_DaNang.xlsx"
 
     evaluate(input_path, output_path="rag_evaluation_results_DaNang.xlsx")
