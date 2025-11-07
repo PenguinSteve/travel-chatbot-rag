@@ -245,7 +245,7 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
     results = []
 
-    # df = df[len(df)-1:]  # Chạy thử từ dòng 102 đến hết
+    # df = df[102:]  # Chạy thử từ dòng 102 đến hết
     
     # print(df)
     try:
