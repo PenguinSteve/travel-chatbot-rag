@@ -5,13 +5,13 @@ from app.config.settings import settings
 from app.config.vector_database_pinecone import PineconeConfig
 from app.services.rag_service import RAGService
 from app.core.llm import llm_rag, llm_evaluate_faithfulness, llm_evaluate_relevance, llm_evaluate_precision, llm_evaluate_recall
-from langchain.retrievers import ContextualCompressionRetriever
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.storage import MongoDBStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 class RAGEvaluation:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
 

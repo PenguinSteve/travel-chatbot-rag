@@ -1,4 +1,3 @@
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from app.core.llm import llm_create_standalone_question, llm_rag, llm_classify
@@ -169,7 +168,7 @@ class RAGService:
 
                     Question: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
                     Output:
-                    {{"Topic": ["Food", "Festival"], "Location": []}}
+                    {{"Topic": ["Food", "Festival", "Attraction"], "Location": []}}
 
                     Question: "Địa đạo Phú Thọ Hòa (Quận Tân Phú) mang giá trị gì?"
                     Output:

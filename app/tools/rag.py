@@ -1,47 +1,31 @@
-from app.repositories.pinecone_repository import PineconeRepository
-from langchain_community.document_compressors import FlashrankRerank
-from app.core.dependencies import get_flashrank_compressor, get_pinecone_repository
-from langchain.retrievers import ContextualCompressionRetriever
 from app.services.rag_service import RAGService
+from langchain.retrievers import ParentDocumentRetriever
 import json
 
-def retrieve_document_rag_wrapper(tool_input: str, pinecone_repository: PineconeRepository, flashrank_compressor: FlashrankRerank): 
+def retrieve_document_rag_wrapper(tool_input: str, retriever: ParentDocumentRetriever = None,): 
     payload = json.loads(tool_input) if isinstance(tool_input, str) else tool_input
-    topic = payload["topic"]    
-    location = payload["location"]
+    topics = payload["topic"]    
+    locations = payload["location"]
     query = payload["query"]
 
     return retrieve_document_rag(
-        topic,
-        location,
+        topics,
+        locations,
         query,
-        pinecone_repository,
-        flashrank_compressor)
+        retriever,
+        )
 
-def retrieve_document_rag(topic: str, location: str, query:str, 
-            pinecone_repository: PineconeRepository,
-            flashrank_compressor: FlashrankRerank):
+def retrieve_document_rag(topics: list = [], locations: list = [], query: str = "", retriever: ParentDocumentRetriever = None):
 
-    if not isinstance(pinecone_repository, PineconeRepository):
-        pinecone_repository = get_pinecone_repository()
-    if not isinstance(flashrank_compressor, FlashrankRerank):
-        flashrank_compressor = get_flashrank_compressor()
-        
     filter = {}
-    if topic:
-        filter["Topic"] = topic
-    if location:
-        filter["Location"] = location
+    if isinstance(topics, list) and len(topics) > 0:
+                filter["Topic"] = {"$in": topics}
+    if isinstance(locations, list) and len(locations) > 0:
+        filter["Location"] = {"$in": locations}
         
-    retriever = pinecone_repository.get_retriever(k=10, filter=filter)
-    # Create compression retriever
-    flashrank_compressor = flashrank_compressor
-    compression_retriever = ContextualCompressionRetriever(
-        base_retriever=retriever,
-        base_compressor=flashrank_compressor
-    )
-    
-    context_docs = RAGService.retrieve_documents(compression_retriever, query)
+    retriever.search_kwargs["filter"] = filter
+
+    context_docs = RAGService.retrieve_documents(retriever, query)
     page_contents = [doc.page_content for doc in context_docs]
     return page_contents
 

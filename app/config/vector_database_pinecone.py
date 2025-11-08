@@ -1,5 +1,5 @@
 from app.config.settings import settings
-from pinecone import ServerlessSpec, Pinecone
+from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 import os

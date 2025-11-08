@@ -9,21 +9,20 @@ pydantic
 pydantic-settings
 
 # LangChain Core
-langchain
-langchain-core
-langchain-groq
-langchain-pinecone
-langchain-huggingface
+langchain-core==0.3.79
+langchain==0.3.27
+langchain-community==0.3.31
+langchain-groq==0.3.8
+langchain-pinecone==0.2.12
+langchain-huggingface==0.3.1
 langgraph
+langchain_google_genai
 
 # Vector Database
-pinecone-client
+pinecone==6.0.0
 
 # Embeddings
 sentence-transformers
-
-# Reranker
-flashrank
 
 # Data Processing
 pandas

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     LLM_MODEL_CREATE_STANDALONE_QUESTION: str = "llama-3.1-8b-instant"
 
     # LLM MODELS FOR EVALUATION
-    LLM_MODEL_EVALUATE: str = "openai/gpt-oss-20b"
+    LLM_MODEL_EVALUATE: str = "openai/gpt-oss-120b"
     GROQ_API_KEY_FAITHFULNESS: str
     GROQ_API_KEY_RELEVANCE: str
     GROQ_API_KEY_PRECISION: str

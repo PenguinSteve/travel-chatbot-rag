@@ -1,13 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pymongo import MongoClient
 from app.models.chat_schema import ChatMessage
-from app.repositories.pinecone_repository import PineconeRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from app.core.dependencies import get_mongodb_instance, get_pinecone_repository, get_parent_document_retriever, get_flashrank_compressor
-from langchain_community.document_compressors import FlashrankRerank
-from langchain.retrievers import ContextualCompressionRetriever
+from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
 from app.utils.chat_history import build_chat_history_from_db
@@ -17,9 +14,7 @@ router = APIRouter()
 
 
 @router.post("/ask", response_model=AskResponse)
-def ask(payload: AskRequest, 
-        pinecone_repository: PineconeRepository = Depends(get_pinecone_repository),
-        flashrank_compressor: FlashrankRerank = Depends(get_flashrank_compressor),
+def ask(payload: AskRequest,
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
         parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
         ):
@@ -76,7 +71,7 @@ def ask(payload: AskRequest,
             return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
         
         elif 'Plan' in topics:
-            agent_service = AgentService(chat_repository, pinecone_repository, flashrank_compressor)
+            agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever)
             response = agent_service.run_agent(question=standalone_question, session_id=session_id)
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)

@@ -1,11 +1,11 @@
 from langchain.agents import create_react_agent, AgentExecutor
 from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
-from app.repositories.pinecone_repository import PineconeRepository
-from langchain_community.document_compressors import FlashrankRerank
+from langchain.retrievers import ParentDocumentRetriever
 from app.tools.index import TOOLS
 from app.core.llm import llm_plan
 from app.config.prompt import get_react_prompt
+
 
 from langchain.tools import Tool
 import time
@@ -13,16 +13,15 @@ from app.tools.rag import retrieve_document_rag_wrapper
 
 
 class AgentService:
-    def __init__(self, chat_repository: ChatRepository, pinecone_repository: PineconeRepository, flashrank_compressor: FlashrankRerank):
+    def __init__(self, retriever: ParentDocumentRetriever, chat_repository: ChatRepository):
         self.llm = llm_plan()
         self.chat_repository = chat_repository
         self.prompt = get_react_prompt()
+        self.retriever = retriever
 
         rag_tool = Tool(
             name="retrieve_document_rag",
-            func=lambda tool_input: retrieve_document_rag_wrapper(tool_input,
-                                                                  pinecone_repository,
-                                                                flashrank_compressor),
+            func=lambda tool_input: retrieve_document_rag_wrapper(tool_input, retriever=self.retriever),
             description=(
                 "Retrieve detailed travel information from the RAG knowledge base for a given topic "
                 "in one of the supported cities (Thành phố Hồ Chí Minh, Đà Nẵng, or Hà Nội). "
@@ -30,8 +29,8 @@ class AgentService:
                 "before generating the trip itinerary. "
                 "Input must be a JSON object in the following format: "
                 "{ "
-                '"topic": "Food" | "Accommodation"'
-                '"location": "Supported city or mapped district name", '
+                '"topic": ["Food"] | ["Accommodation"] | ["Food", "Accommodation"], '
+                '"location": ["Supported city or mapped district name"], '
                 '"query": "Short, focused question combining topic and location" '
                 "}. "
                 "Output returns relevant travel content and metadata for that topic."
