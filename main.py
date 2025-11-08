@@ -32,7 +32,7 @@ async def life_span(app: FastAPI):
         print('\n---------------------Initialized Pinecone repository with vector store---------------------\n')
 
         # Initialize Flashrank compressor
-        app.state.flashrank_compressor = FlashrankRerank(top_n=3, model="ms-marco-MultiBERT-L-12")
+        app.state.flashrank_compressor = FlashrankRerank(top_n=3)
         print('\n---------------------Initialized Flashrank compressor---------------------\n')
 
         # Initialize Docstore mongodb
