@@ -66,12 +66,12 @@ def ask(payload: AskRequest,
     # Get retriever from Pinecone repository
     parent_document_retriever.search_kwargs["filter"] = filter
 
-    # Create compression retriever
-    flashrank_compressor = flashrank_compressor
-    compression_retriever = ContextualCompressionRetriever(
-        base_retriever=parent_document_retriever,
-        base_compressor=flashrank_compressor
-    )
+    # # Create compression retriever
+    # flashrank_compressor = flashrank_compressor
+    # compression_retriever = ContextualCompressionRetriever(
+    #     base_retriever=parent_document_retriever,
+    #     base_compressor=flashrank_compressor
+    # )
 
     # Generate response using RAG service
     try:
@@ -88,7 +88,7 @@ def ask(payload: AskRequest,
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
-            response_text, context_docs = RAGService.generate_response(compression_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository)
+            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 

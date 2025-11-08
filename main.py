@@ -48,9 +48,8 @@ async def life_span(app: FastAPI):
 
         app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
                                                                     child_splitter=child_splitter, 
-                                                                    vectorstore=vector_store, 
-                                                                    search_type="similarity_score_threshold",
-                                                                    search_kwargs={"k":10, "filter":{}, "score_threshold": 0.8 })
+                                                                    vectorstore=vector_store,
+                                                                    search_kwargs={"k":10, "filter":{} })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
 
     except Exception as e:

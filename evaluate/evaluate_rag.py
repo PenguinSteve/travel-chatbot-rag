@@ -37,8 +37,7 @@ class RAGEvaluation:
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
-            search_type="similarity_score_threshold",
-            search_kwargs={"k":5, "filter":{}, "score_threshold": 0.8}
+            search_kwargs={"k":5, "filter":{}}
         )
 
     # Implement RAG response generation for evaluation
@@ -102,9 +101,6 @@ class RAGEvaluation:
             
             context_str = f"Tên tài liệu: {name}\nNội dung: {doc.page_content}"
             formatted_contexts.append(context_str)
-
-        print(f"\nRetrieved {len(formatted_contexts)} context documents for question: {question}")
-        print(f"\nContexts:\n" + "\n\n".join(formatted_contexts))
 
         # prompt_input = {
         #     "context": "\n\n".join(formatted_contexts),

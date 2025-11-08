@@ -143,10 +143,10 @@ class RAGService:
                     - Represents geographic areas mentioned.
                     - Must be a **list** (even if only one element).
                     - Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
-                    - **STRICT RULE:** Do NOT infer or guess the location from context, addresses, or street names (e.g., 'Nguyễn Trãi', 'Cầu Rồng', 'Huỳnh Thúc Kháng' do NOT imply a city).
+                    - You MUST NOT guess the city if it is not **explicitly** mentioned by name.
+                    - If the question contains a **district, ward, street name, or any smaller area** (e.g., "Quận 5", "Cần Giờ", "Phú Thọ Hòa", "Nghĩa An") → you MUST **NOT** map it to any city name.
                     - If multiple valid cities appear → include all of them.
-                    - If other locations (Huế, Nha Trang, Quy Nhơn...) appear → **ignore them** (do not include).
-                    - If no explicit allowed city name is found → return empty list `[]`.
+                    - If no allowed city name is present, always output an empty list [].
 
                     3. **Output format**
                     - Output ONLY valid JSON.
@@ -161,11 +161,25 @@ class RAGService:
 
                     ---
 
-                ### EXAMPLES:
+                    ### NEGATIVE EXAMPLES (very important):
+
+                    Question: "Lễ hội Nghinh Ông Cần Giờ thường được tổ chức vào thời gian nào hàng năm?"
+                    Output:
+                    {"Topic": ["Festival"], "Location": []}
+
+                    Question: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
+                    Output:
+                    {"Topic": ["Food", "Festival"], "Location": []}
+
+                    Question: "Địa đạo Phú Thọ Hòa (Quận Tân Phú) mang giá trị gì?"
+                    Output:
+                    {"Topic": ["Attraction"], "Location": []}
+                    
                     Question: "Có khách sạn nào gần Hội quán Hà Chương (802 Nguyễn Trãi) phù hợp cho khách du lịch văn hóa?"
                     Output:
                     {{"Topic": ["Accommodation"], "Location": []}}
-
+                ### POSITIVE EXAMPLES:
+            
                     Question: "Khách sạn nào gần chợ Bến Thành?"
                     Output: 
                     {{"Topic": ["Accommodation"], "Location": ["Thành phố Hồ Chí Minh"]}}
@@ -201,6 +215,14 @@ class RAGService:
             print(f"\n---------------------Classifying query: {query}---------------------\n")
             classification = classification_chain.invoke({"question": query})
             print(f"\n---------------------Classification result: {classification}---------------------\n")
+
+            # Filter allowed topics and locations
+            allowed_cities = ["Hà Nội", "Thành phố Hồ Chí Minh", "Đà Nẵng"]
+            allowed_topics = ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Plan', 'Off_topic']
+            topics = [topic for topic in classification.get("Topic", []) if topic in allowed_topics]
+            classification["Topic"] = topics
+            locations = [loc for loc in classification.get("Location", []) if loc in allowed_cities]
+            classification["Location"] = locations
             return classification
 
         except Exception as e:
