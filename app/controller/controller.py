@@ -54,14 +54,14 @@ def ask(payload: AskRequest,
     # Classify query to get topic and location
     classify_result = RAGService.classify_query(standalone_question)
 
-    topic = classify_result.get("Topic") or None
-    location = classify_result.get("Location") or None
+    topics = classify_result.get("Topic") or []
+    locations = classify_result.get("Location") or []
 
     filter = {}
-    if topic:
-        filter["Topic"] = topic
-    if location:
-        filter["Location"] = location
+    if isinstance(topics, list) and len(topics) > 0:
+                filter["Topic"] = {"$in": topics}
+    if isinstance(locations, list) and len(locations) > 0:
+        filter["Location"] = {"$in": locations}
 
     # Get retriever from Pinecone repository
     parent_document_retriever.search_kwargs["filter"] = filter
@@ -75,20 +75,20 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        if topic == 'Plan' and location == None:
+        if 'Plan' in topics and len(locations) == 0:
 
             chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
             chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))
 
             return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
         
-        elif topic == 'Plan':
+        elif 'Plan' in topics:
             agent_service = AgentService(chat_repository, pinecone_repository, flashrank_compressor)
             response = agent_service.run_agent(question=standalone_question, session_id=session_id)
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
-            response_text, context_docs = RAGService.generate_response(compression_retriever, payload, standalone_question, chat_history, topic, location, chat_repository)
+            response_text, context_docs = RAGService.generate_response(compression_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 

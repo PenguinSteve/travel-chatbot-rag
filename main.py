@@ -46,7 +46,11 @@ async def life_span(app: FastAPI):
             chunk_overlap=100,
             separators=["\n\n", "\n", ". ", " ", ""])
 
-        app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore, child_splitter=child_splitter, vectorstore=vector_store, search_kwargs={"k":20, "filter":{}})
+        app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
+                                                                    child_splitter=child_splitter, 
+                                                                    vectorstore=vector_store, 
+                                                                    search_type="similarity_score_threshold",
+                                                                    search_kwargs={"k":10, "filter":{}, "score_threshold": 0.8 })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
 
     except Exception as e:

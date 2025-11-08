@@ -37,11 +37,12 @@ class RAGEvaluation:
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
-            search_kwargs={"k":20, "filter":{}}
+            search_type="similarity_score_threshold",
+            search_kwargs={"k":5, "filter":{}, "score_threshold": 0.8}
         )
 
     # Implement RAG response generation for evaluation
-    def generate_response(self, retriever, question: str, topic, location) -> str:
+    def generate_response(self, retriever, question: str, topics, locations) -> str:
         llm = llm_rag()
 
         system = """### Role and Goal
@@ -83,7 +84,7 @@ class RAGEvaluation:
 
         rag_chain = prompt | llm | StrOutputParser()
 
-        if( topic == "Off_topic" ):
+        if( 'Off_topic' in topics ):
             prompt_input = {
                 "context": "",
                 "question": question
@@ -105,12 +106,13 @@ class RAGEvaluation:
         print(f"\nRetrieved {len(formatted_contexts)} context documents for question: {question}")
         print(f"\nContexts:\n" + "\n\n".join(formatted_contexts))
 
-        prompt_input = {
-            "context": "\n\n".join(formatted_contexts),
-            "question": question
-        }
+        # prompt_input = {
+        #     "context": "\n\n".join(formatted_contexts),
+        #     "question": question
+        # }
 
-        response = rag_chain.invoke(prompt_input)
+        # response = rag_chain.invoke(prompt_input)
+        response = ""
 
         return response, context_docs
     
@@ -259,29 +261,29 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             classify_result = RAGService.classify_query(question)
 
-            topic = classify_result.get("Topic") or None
-            location = classify_result.get("Location") or None
+            topics = classify_result.get("Topic") or []
+            locations = classify_result.get("Location") or []
 
             filter = {}
-            if topic:
-                filter["Topic"] = topic
-            if location:
-                filter["Location"] = location
+            if isinstance(topics, list) and len(topics) > 0:
+                filter["Topic"] = {"$in": topics}
+            if isinstance(locations, list) and len(locations) > 0:
+                filter["Location"] = {"$in": locations}
 
             # Initialize retriever with filter
             retriever = RAGEvaluation_instance.parent_document_retriever
             retriever.search_kwargs["filter"] = filter
 
             # Initialize compression retriever
-            flashrank_compressor = RAGEvaluation_instance.flashrank_comp
-            compression_retriever = ContextualCompressionRetriever(
-                base_retriever=retriever,
-                base_compressor=flashrank_compressor
-            )
+            # flashrank_compressor = RAGEvaluation_instance.flashrank_comp
+            # compression_retriever = ContextualCompressionRetriever(
+            #     base_retriever=retriever,
+            #     base_compressor=flashrank_compressor
+            # )
 
             # Generate response
-            if topic != 'Plan' :
-                answer, context_docs = RAGEvaluation_instance.generate_response(compression_retriever, question, topic, location)
+            if 'Plan' not in topics:
+                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations)
             else:
                 answer = "N/A for planning questions in this evaluation."
                 context_docs = []
@@ -296,49 +298,51 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             context_combined = "\n\n".join(formatted_contexts)
 
-            # Evaluate metrics faithfulness
-            faithfulness_result = RAGEvaluation_instance.evaluate_faithfulness(
-                question, answer, context_combined
-            )
-            print(f"\nEvaluated row {index + 1}: Faithfulness score = {faithfulness_result.get('score') or 'N/A'}")
-            print(f"Faithfulness explanation: {faithfulness_result.get('explanation') or ''}")
+            print(f"Context combined for evaluation:\n{context_combined}")
 
-            # Evaluate metrics relevance
-            relevance_result = RAGEvaluation_instance.evaluate_answer_relevance(
-                question, answer
-            )
-            print(f"\nEvaluated row {index + 1}: Relevance score = {relevance_result.get('score') or 'N/A'}")
-            print(f"Relevance explanation: {relevance_result.get('explanation') or ''}")
+            # # Evaluate metrics faithfulness
+            # faithfulness_result = RAGEvaluation_instance.evaluate_faithfulness(
+            #     question, answer, context_combined
+            # )
+            # print(f"\nEvaluated row {index + 1}: Faithfulness score = {faithfulness_result.get('score') or 'N/A'}")
+            # print(f"Faithfulness explanation: {faithfulness_result.get('explanation') or ''}")
 
-            # Evaluate metrics context precision and recall
-            precision_result = RAGEvaluation_instance.evaluate_context_precision(
-                question, context_combined, answer
-            )
-            print(f"\nEvaluated row {index + 1}: Context Precision score = {precision_result.get('score') or 'N/A'}")
-            print(f"Context Precision explanation: {precision_result.get('explanation') or ''}")
+            # # Evaluate metrics relevance
+            # relevance_result = RAGEvaluation_instance.evaluate_answer_relevance(
+            #     question, answer
+            # )
+            # print(f"\nEvaluated row {index + 1}: Relevance score = {relevance_result.get('score') or 'N/A'}")
+            # print(f"Relevance explanation: {relevance_result.get('explanation') or ''}")
 
-            # Evaluate context recall
-            recall_result = RAGEvaluation_instance.evaluate_context_recall(
-                question, context_combined, groundTruth
-            )
-            print(f"\nEvaluated row {index + 1}: Context Recall score = {recall_result.get('score') or 'N/A'}")
-            print(f"Context Recall explanation: {recall_result.get('explanation') or ''}")
+            # # Evaluate metrics context precision and recall
+            # precision_result = RAGEvaluation_instance.evaluate_context_precision(
+            #     question, context_combined, answer
+            # )
+            # print(f"\nEvaluated row {index + 1}: Context Precision score = {precision_result.get('score') or 'N/A'}")
+            # print(f"Context Precision explanation: {precision_result.get('explanation') or ''}")
 
-            # Store results
-            results.append({
-                "Question": question,
-                "GroundTruth": groundTruth,
-                "Answer": answer,
-                "Faithfulness_Score": faithfulness_result.get("score") or "N/A",
-                "Faithfulness_Explanation": faithfulness_result.get("explanation") or "",
-                "Relevance_Score": relevance_result.get("score") or "N/A",
-                "Relevance_Explanation": relevance_result.get("explanation") or "",
-                "Context_Precision_Score": precision_result.get("score") or "N/A",
-                "Context_Precision_Explanation": precision_result.get("explanation") or "",
-                "Context_Recall_Score": recall_result.get("score") or "N/A",
-                "Context_Recall_Explanation": recall_result.get("explanation") or "",
-                "Context_Documents": context_combined
-            })
+            # # Evaluate context recall
+            # recall_result = RAGEvaluation_instance.evaluate_context_recall(
+            #     question, context_combined, groundTruth
+            # )
+            # print(f"\nEvaluated row {index + 1}: Context Recall score = {recall_result.get('score') or 'N/A'}")
+            # print(f"Context Recall explanation: {recall_result.get('explanation') or ''}")
+
+            # # Store results
+            # results.append({
+            #     "Question": question,
+            #     "GroundTruth": groundTruth,
+            #     "Answer": answer,
+            #     "Faithfulness_Score": faithfulness_result.get("score") or "N/A",
+            #     "Faithfulness_Explanation": faithfulness_result.get("explanation") or "",
+            #     "Relevance_Score": relevance_result.get("score") or "N/A",
+            #     "Relevance_Explanation": relevance_result.get("explanation") or "",
+            #     "Context_Precision_Score": precision_result.get("score") or "N/A",
+            #     "Context_Precision_Explanation": precision_result.get("explanation") or "",
+            #     "Context_Recall_Score": recall_result.get("score") or "N/A",
+            #     "Context_Recall_Explanation": recall_result.get("explanation") or "",
+            #     "Context_Documents": context_combined
+            # })
     except Exception as e:
         print(f"Error during evaluation: {e}")
         print("Saving partial results...")

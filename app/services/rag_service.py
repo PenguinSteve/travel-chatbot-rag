@@ -10,7 +10,7 @@ from app.request.AskRequest import ChatRequest
 class RAGService:
     
     @staticmethod
-    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topic: str = None, location: str = None, chat_repository: ChatRepository = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None):
         try:
             message = payload.message
             session_id = payload.session_id
@@ -77,7 +77,7 @@ class RAGService:
             print("\n---------------------Conversation so far:---------------------\n")
             print(conversation_str)
 
-            if( topic == "Off_topic" ):
+            if( not topics or 'Off_topic' in topics ):
                 prompt_input = {
                     "conversation": conversation_str,
                     "context": "",
@@ -128,96 +128,67 @@ class RAGService:
 
             system = """You are a query classifier assistant. Your SOLE task is to analyze the user's "Question" and extract the 'Topic' and 'Location'.
 
-                CLASSIFICATION RULES:
+                ### CLASSIFICATION RULES:
 
-                1.  **`Topic`:** This is the **core intent** of what the user WANTS TO KNOW.
-                    * It MUST be one of the following values: `['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Off_topic', 'Plan']`.
-                    * **GOLDEN RULE:** The `Topic` is *what the user is asking about* (e.g., 'Food'), NOT just a named entity in the query (e.g., 'Festival').
+                    1. **Topic**
+                    - Represents *what the user wants to know about*.
+                    - Must be a **list** (even if only one element).
+                    - Allowed values: ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Plan', 'Off_topic'].
+                    - You may include **multiple topics** if the question clearly refers to multiple aspects.
+                        - Example: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm tham quan nào gần đó?"  
+                        → `"Topic": ["Food", "Attraction"]`
+                    - If the question is unrelated to tourism or a greeting → `"Topic": ["Off_topic"]`.
 
-                2.  **`Location`:** This is the specific geographical location mentioned.
-                    * It MUST be one of the following values: `['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng']`.
-                    * **MAPPING RULE: If the question mentions a specific landmark, district, or area (e.g., "Bán đảo Sơn Trà", "Cầu Rồng", "Quận Hoàn Kiếm", "Quận 1", "Cần Giờ"), you MUST map it to its parent city from the list.**
-                    * **REJECTION RULE:** If a location is mentioned but is NOT in or part of the three cities (e.g., "Huế", "Nha Trang"), return `null`.
-                    * If no location is mentioned, return `null`.
+                    2. **Location**
+                    - Represents geographic areas mentioned.
+                    - Must be a **list** (even if only one element).
+                    - Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
+                    - **STRICT RULE:** Do NOT infer or guess the location from context, addresses, or street names (e.g., 'Nguyễn Trãi', 'Cầu Rồng', 'Huỳnh Thúc Kháng' do NOT imply a city).
+                    - If multiple valid cities appear → include all of them.
+                    - If other locations (Huế, Nha Trang, Quy Nhơn...) appear → **ignore them** (do not include).
+                    - If no explicit allowed city name is found → return empty list `[]`.
 
-                OUTPUT FORMAT:
-                -   You MUST respond ONLY with a valid JSON object.
-                -   Do NOT provide any explanation or greeting.
+                    3. **Output format**
+                    - Output ONLY valid JSON.
+                    - Structure:
+                        ```json
+                        {{
+                        "Topic": [...],
+                        "Location": [...]
+                        }}
+                        ```
+                    - No explanations or additional text.
 
-                ---
-                **EXAMPLE 1 (CRITICAL CASE):**
-                Question: "Ẩm thực trong sự kiện Enjoy Danang Festival 2025 tập trung ở khu vực nào?" (Food at the Enjoy Danang Festival 2025)
-                Output:
-                {{"Topic": "Food", "Location": "Đà Nẵng"}}
+                    ---
 
-                ---
-                **EXAMPLE 2 (CONTRASTING CASE):**
-                Question: "Thông tin về Enjoy Danang Festival 2025" (Information about Enjoy Danang Festival 2025)
-                Output:
-                {{"Topic": "Festival", "Location": "Đà Nẵng"}}
+                ### EXAMPLES:
+                    Question: "Có khách sạn nào gần Hội quán Hà Chương (802 Nguyễn Trãi) phù hợp cho khách du lịch văn hóa?"
+                    Output:
+                    {{"Topic": ["Accommodation"], "Location": []}}
 
-                ---
-                **EXAMPLE 3: **
-                Question: "Du khách đến Di chỉ Giồng Cá Vồ (huyện Cần Giờ) có thể tìm hiểu điều gì?" (What can tourists learn at the Giồng Cá Vồ site in Cần Giờ?)
-                Output:
-                {{"Topic": "Attraction", "Location": "Thành phố Hồ Chí Minh"}}
+                    Question: "Khách sạn nào gần chợ Bến Thành?"
+                    Output: 
+                    {{"Topic": ["Accommodation"], "Location": ["Thành phố Hồ Chí Minh"]}}
 
-                ---
-                **EXAMPLE 4:**
-                Question: "Khách sạn nào tốt?" (Which hotel is good?)
-                Output:
-                {{"Topic": "Accommodation", "Location": null}}
+                    Question: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm du lịch nào gần đó?"
+                    Output:
+                    {{"Topic": ["Food", "Attraction"], "Location": ["Thành phố Hồ Chí Minh"]}}
 
-                ---
-                **EXAMPLE 5:**
-                Question: "Món bún bò Huế có ngon không?" (Is Bun Bo Hue good?)
-                Output:
-                {{"Topic": "Food", "Location": null}}
+                    Question: "Các khách sạn ở Đà Nẵng có gần biển không?"
+                    Output:
+                    {{"Topic": ["Accommodation"], "Location": ["Đà Nẵng"]}}
 
-                ---
-                **EXAMPLE 6:**
-                Question: "Món bún nêm có gì đặc trưng và quán nào ngon?" (What is special about bun nem and which restaurant is good?)
-                Output:
-                {{"Topic": "Food", "Location": null}}
+                    Question: "Ẩm thực Hà Nội và Đà Nẵng khác nhau thế nào?"
+                    Output:
+                    {{"Topic": ["Food"], "Location": ["Hà Nội", "Đà Nẵng"]}}
 
-                ---
-                **EXAMPLE 7:**
-                Question: "Quán phở nào ngon ở Hà Nội?" (Which pho restaurant is good in Hanoi?)
-                Output:
-                {{"Topic": "Food", "Location": "Hà Nội"}}
+                    Question: "Xin chào!"
+                    Output:
+                    {{"Topic": ["Off_topic"], "Location": []}}
 
-                ---
-                **EXAMPLE 8:**
-                Question: "Thời gian tốt để thăm Đà Nẵng là khi nào?" (When is a good time to visit Da Nang?)
-                Output:
-                {{"Topic": "General", "Location": "Đà Nẵng"}}
+                    ---
 
-                ---
-                **EXAMPLE 9:**
-                Question: "Tôi muốn biết về các lễ hội ở Thành phố Hồ Chí Minh." (I want to know about festivals in Ho Chi Minh City.)
-                Output:
-                {{"Topic": "Festival", "Location": "Thành phố Hồ Chí Minh"}}
-
-                ---
-                **EXAMPLE 10:**
-                Question: "Các cách di chuyển ở Hà Nội" (Ways to get around in Hanoi)
-                Output:
-                {{"Topic": "Transport", "Location": "Hà Nội"}}
-
-                ---
-                **EXAMPLE 11:**
-                Question: "Tell me a joke."
-                Output:
-                {{"Topic": "Off_topic", "Location": null}}
-
-                ---
-                **EXAMPLE 12:**
-                Question: "Xin chào!" (Hello!)
-                Output:
-                {{"Topic": "Off_topic", "Location": null}}
-                ---
-
-                Now, classify the Question below:
+                Now classify the following Question:
             """
 
             prompt = ChatPromptTemplate.from_messages([
@@ -264,6 +235,10 @@ class RAGService:
 
             ---
             VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
+            ---
+            Lịch sử: []
+            Câu hỏi mới: "Hãy lên kế hoạch du lịch tại cần giờ"
+            Câu hỏi độc lập: "Hãy lên kế hoạch du lịch tại cần giờ"
             ---
             Lịch sử: []
             Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
