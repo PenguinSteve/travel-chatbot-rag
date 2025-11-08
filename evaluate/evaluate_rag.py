@@ -28,7 +28,7 @@ class RAGEvaluation:
             db_name=settings.MONGO_DB_NAME,
             collection_name=settings.MONGO_STORE_COLLECTION_NAME
         )
-        self.flashrank_comp = FlashrankRerank(top_n=5, model="ms-marco-MiniLM-L-12-v2")
+        self.flashrank_comp = FlashrankRerank(top_n=3, model="ms-marco-MultiBERT-L-12")
         self.llm_rag_eval_faithfulness = llm_evaluate_faithfulness()
         self.llm_rag_eval_relevance = llm_evaluate_relevance()
         self.llm_rag_eval_precision = llm_evaluate_precision()
@@ -240,9 +240,11 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
     print("Loading evaluation dataset from:", input_path)
     df = pd.read_excel(input_path).fillna("")
 
-    df = df[30:]  # Chạy thử từ dòng 102 đến hết
+    # df = df[30:]  # Chạy thử từ dòng 102 đến hết
     
     # print(df)
+
+    print(f"Evaluation dataset loaded. Total questions: {len(df)}")
 
     print("Initializing RAG evaluation components...")
     RAGEvaluation_instance = RAGEvaluation()
@@ -350,6 +352,6 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 # --- --------------- Example usage --------------- ---
 if __name__ == "__main__":
     
-    input_path = "./evaluate/data/data_evaluate_DaNang.xlsx"
+    input_path = "./evaluate/data/data_evaluate_TPHCM.xlsx"
 
-    evaluate(input_path, output_path="rag_evaluation_results_DaNang.xlsx")
+    evaluate(input_path, output_path="rag_evaluation_results_TPHCM.xlsx")

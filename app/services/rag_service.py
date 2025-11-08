@@ -136,7 +136,8 @@ class RAGService:
 
                 2.  **`Location`:** This is the specific geographical location mentioned.
                     * It MUST be one of the following values: `['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng']`.
-                    * If a location is mentioned but is NOT in this list (e.g., "Huế"), return `null`.
+                    * **MAPPING RULE: If the question mentions a specific landmark, district, or area (e.g., "Bán đảo Sơn Trà", "Cầu Rồng", "Quận Hoàn Kiếm", "Quận 1", "Cần Giờ"), you MUST map it to its parent city from the list.**
+                    * **REJECTION RULE:** If a location is mentioned but is NOT in or part of the three cities (e.g., "Huế", "Nha Trang"), return `null`.
                     * If no location is mentioned, return `null`.
 
                 OUTPUT FORMAT:
@@ -156,55 +157,61 @@ class RAGService:
                 {{"Topic": "Festival", "Location": "Đà Nẵng"}}
 
                 ---
-                **EXAMPLE 3:**
+                **EXAMPLE 3: **
+                Question: "Du khách đến Di chỉ Giồng Cá Vồ (huyện Cần Giờ) có thể tìm hiểu điều gì?" (What can tourists learn at the Giồng Cá Vồ site in Cần Giờ?)
+                Output:
+                {{"Topic": "Attraction", "Location": "Thành phố Hồ Chí Minh"}}
+
+                ---
+                **EXAMPLE 4:**
                 Question: "Khách sạn nào tốt?" (Which hotel is good?)
                 Output:
                 {{"Topic": "Accommodation", "Location": null}}
 
                 ---
-                **EXAMPLE 4:**
+                **EXAMPLE 5:**
                 Question: "Món bún bò Huế có ngon không?" (Is Bun Bo Hue good?)
                 Output:
                 {{"Topic": "Food", "Location": null}}
 
                 ---
-                **EXAMPLE 5:**
+                **EXAMPLE 6:**
                 Question: "Món bún nêm có gì đặc trưng và quán nào ngon?" (What is special about bun nem and which restaurant is good?)
                 Output:
                 {{"Topic": "Food", "Location": null}}
 
                 ---
-                **EXAMPLE 6:**
+                **EXAMPLE 7:**
                 Question: "Quán phở nào ngon ở Hà Nội?" (Which pho restaurant is good in Hanoi?)
                 Output:
                 {{"Topic": "Food", "Location": "Hà Nội"}}
 
                 ---
-                **EXAMPLE 7:**
+                **EXAMPLE 8:**
                 Question: "Thời gian tốt để thăm Đà Nẵng là khi nào?" (When is a good time to visit Da Nang?)
                 Output:
                 {{"Topic": "General", "Location": "Đà Nẵng"}}
 
                 ---
-                **EXAMPLE 8:**
+                **EXAMPLE 9:**
                 Question: "Tôi muốn biết về các lễ hội ở Thành phố Hồ Chí Minh." (I want to know about festivals in Ho Chi Minh City.)
                 Output:
                 {{"Topic": "Festival", "Location": "Thành phố Hồ Chí Minh"}}
 
                 ---
-                **EXAMPLE 9:**
+                **EXAMPLE 10:**
                 Question: "Các cách di chuyển ở Hà Nội" (Ways to get around in Hanoi)
                 Output:
                 {{"Topic": "Transport", "Location": "Hà Nội"}}
 
                 ---
-                **EXAMPLE 10:**
+                **EXAMPLE 11:**
                 Question: "Tell me a joke."
                 Output:
                 {{"Topic": "Off_topic", "Location": null}}
 
                 ---
-                **EXAMPLE 11:**
+                **EXAMPLE 12:**
                 Question: "Xin chào!" (Hello!)
                 Output:
                 {{"Topic": "Off_topic", "Location": null}}
