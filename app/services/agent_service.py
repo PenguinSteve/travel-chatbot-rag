@@ -8,6 +8,7 @@ from app.core.llm import llm_plan
 from app.config.prompt import get_react_prompt
 
 from langchain.tools import Tool
+import time
 from app.tools.rag import retrieve_document_rag_wrapper
 
 
@@ -37,6 +38,7 @@ class AgentService:
             )
 
         )
+        
 
         self.TOOLS = TOOLS + [rag_tool]
 
