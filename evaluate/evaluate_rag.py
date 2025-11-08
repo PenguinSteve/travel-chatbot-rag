@@ -270,13 +270,6 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
             retriever = RAGEvaluation_instance.parent_document_retriever
             retriever.search_kwargs["filter"] = filter
 
-            # Initialize compression retriever
-            # flashrank_compressor = RAGEvaluation_instance.flashrank_comp
-            # compression_retriever = ContextualCompressionRetriever(
-            #     base_retriever=retriever,
-            #     base_compressor=flashrank_compressor
-            # )
-
             # Generate response
             if 'Plan' not in topics:
                 answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations)

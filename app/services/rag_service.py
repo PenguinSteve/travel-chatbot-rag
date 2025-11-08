@@ -165,15 +165,15 @@ class RAGService:
 
                     Question: "Lễ hội Nghinh Ông Cần Giờ thường được tổ chức vào thời gian nào hàng năm?"
                     Output:
-                    {"Topic": ["Festival"], "Location": []}
+                    {{"Topic": ["Festival"], "Location": []}}
 
                     Question: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
                     Output:
-                    {"Topic": ["Food", "Festival"], "Location": []}
+                    {{"Topic": ["Food", "Festival"], "Location": []}}
 
                     Question: "Địa đạo Phú Thọ Hòa (Quận Tân Phú) mang giá trị gì?"
                     Output:
-                    {"Topic": ["Attraction"], "Location": []}
+                    {{"Topic": ["Attraction"], "Location": []}}
                     
                     Question: "Có khách sạn nào gần Hội quán Hà Chương (802 Nguyễn Trãi) phù hợp cho khách du lịch văn hóa?"
                     Output:

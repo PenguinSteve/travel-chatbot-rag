@@ -66,13 +66,6 @@ def ask(payload: AskRequest,
     # Get retriever from Pinecone repository
     parent_document_retriever.search_kwargs["filter"] = filter
 
-    # # Create compression retriever
-    # flashrank_compressor = flashrank_compressor
-    # compression_retriever = ContextualCompressionRetriever(
-    #     base_retriever=parent_document_retriever,
-    #     base_compressor=flashrank_compressor
-    # )
-
     # Generate response using RAG service
     try:
         if 'Plan' in topics and len(locations) == 0:
