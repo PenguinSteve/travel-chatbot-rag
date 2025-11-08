@@ -1,5 +1,6 @@
 from pymongo.collection import Collection
 from app.models.schedule_schema import ScheduleItem
+from datetime import datetime
 class ScheduleRepository:
     def __init__(self, db):
         self.collection: Collection = db["schedules"]
@@ -23,7 +24,7 @@ class ScheduleRepository:
             "itinerary": schedule_item["itinerary"],
             "accommodation": schedule_item["accommodation"],
             "tips": schedule_item["tips"],
-            "created_at": schedule_item.get("created_at"),
+            "created_at": schedule_item.get("created_at", datetime.now()) ,
         })
 
 

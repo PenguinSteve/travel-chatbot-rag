@@ -236,7 +236,6 @@ class RAGService:
             context_docs = retriever.invoke(query)
             end_time_retrieval = os.times()
             print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
-            
             return context_docs
 
         except Exception as e:
