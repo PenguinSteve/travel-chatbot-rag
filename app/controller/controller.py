@@ -52,6 +52,7 @@ def ask(payload: AskRequest,
 
     if(standalone_question is None):
         classify_result = RAGService.classify_query(message)
+        standalone_question = message
     else:
         classify_result = RAGService.classify_query(standalone_question)
 
