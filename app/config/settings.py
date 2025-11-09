@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     # LLM MODELS FOR RAG SYSTEM
     LLM_MODEL_RAG: str = "openai/gpt-oss-120b"
     LLM_MODEL_CLASSIFY: str = "llama-3.1-8b-instant"
-    LLM_MODEL_CREATE_STANDALONE_QUESTION: str = "llama-3.1-8b-instant"
+
+    GEMINI_API_KEY_CREATE_STANDALONE_QUESTION: str
+    LLM_MODEL_CREATE_STANDALONE_QUESTION: str = "gemini-2.5-flash-lite"
 
     # LLM MODELS FOR EVALUATION
     LLM_MODEL_EVALUATE: str = "openai/gpt-oss-120b"

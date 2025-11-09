@@ -138,6 +138,8 @@ class RAGService:
                         - Example: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm tham quan nào gần đó?"  
                         → `"Topic": ["Food", "Attraction"]`
                     - If the question mentions nearly places or proximity → include relevant topics like 'Attraction', 'Accommodation', or 'Restaurant' as applicable.
+                    - Only assign 'Plan' if the user explicitly asks to create an itinerary, a schedule, or a multi-day plan (e.g., "2-day plan", "3 days 2 nights", "itinerary for the weekend").
+                    - DO NOT assign 'Plan' if the user is simply asking for options or filtering a search by a part of the day (e.g., "in the morning", "in the evening", "at night").
                     - If the question is unrelated to tourism or a greeting → `"Topic": ["Off_topic"]`.
 
                     2. **Location**
@@ -165,6 +167,18 @@ class RAGService:
                     - No explanations or additional text.
 
                     ---
+                    ### EXAMPLES (Demonstrating the PLAINNING Rule):
+                    Question: "Hãy giúp tôi lên kế hoạch du lịch tại Cần Giờ"
+                    Output:
+                    {{"Topic": ["Plan"], "Location": []}}
+
+                    Question: "Những nơi vui chơi ở Sài Gòn buổi tối?"
+                    Output:
+                    {{"Topic": ["Attraction"], "Location": ["Thành phố Hồ Chí Minh"]}}
+
+                    Question: "Gợi ý 1 số nhà hàng cho buổi tối ở Hà Nội"
+                    Output:
+                    {{"Topic": ["Food", "Restaurant"], "Location": ["Hà Nội"]}}
 
                     ### EXAMPLES (Demonstrating the STRICT REJECTION RULE):
 
@@ -294,125 +308,238 @@ class RAGService:
 
     @staticmethod
     def build_standalone_question(question: str, chat_history: list):
+        try:
+            contextualize_q_system_prompt = """Bạn là một công cụ viết lại câu. Nhiệm vụ duy nhất của bạn là chuyển đổi "Câu hỏi mới" và "Lịch sử trò chuyện" thành một "Câu hỏi độc lập" (standalone question) có thể hiểu được mà không cần lịch sử.
+
+                Định dạng JSON BẮT BUỘC:
+                ```json
+                {{
+                    "standalone_question": "Câu hỏi độc lập được viết lại ở đây"
+                }}
+                ```
+            
+                QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
+
+                1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI vào trường JSON. Nếu bạn trả lời, bạn đã thất bại.
+                2.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
+                3.  **QUY TẮC "VIẾT LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?") HOẶC là một câu hỏi chung chung (ví dụ: "lên kế hoạch", "đi du lịch") mà bối cảnh địa điểm nằm trong Lịch sử, hãy dùng "Lịch sử trò chuyện" và bối cảnh địa điểm đó để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
+                4.  Nếu "Câu hỏi mới" chỉ gồm 1-2 từ ngắn gọn như “Tiếp”, “Còn gì?”, “Ở đó sao?”, “Món đó ngon không?”, hãy sử dụng “Lịch sử” để suy ra chủ đề hoặc địa điểm gần nhất và viết lại thành câu hỏi đầy đủ có ngữ nghĩa hoàn chỉnh.
+                5.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 2):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
+                6.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
+                7.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
+                8.  **CHỌN NGỮ CẢNH MỚI NHẤT:** Nếu có nhiều câu trong "Lịch sử trò chuyện", chỉ sử dụng ngữ cảnh gần nhất của người dùng (Human) để viết lại câu hỏi. Không dựa vào các câu hỏi cũ hơn hoặc câu trả lời của AI nếu chúng không liên quan trực tiếp đến "Câu hỏi mới".
+                9.  Nếu "Lịch sử" không chứa thông tin địa điểm, thời gian, hoặc chủ đề rõ ràng, giữ nguyên "Câu hỏi mới" mà không suy diễn thêm.
+
+                BẮT BUỘC: Output phải là JSON hợp lệ duy nhất, không được chứa ký tự hoặc giải thích ngoài cặp dấu json.
+
+                ---
+                VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
+                ---
+                Lịch sử: []
+                Câu hỏi mới: "Hãy lên kế hoạch du lịch tại cần giờ"
+                OUTPUT:
+                {{
+                    "standalone_question": "Hãy lên kế hoạch du lịch tại cần giờ"
+                }}
+                ---
+                Lịch sử: []
+                Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
+                OUTPUT:
+                {{
+                    "standalone_question": "Các món ăn ngon ở Hà Nội là gì?"
+                }}
+                ---
+                Lịch sử: [Human: "Tôi muốn đi du lịch TPHCM"]
+                Câu hỏi mới: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+                OUTPUT:
+                {{
+                    "standalone_question": "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+                }}
+                ---
+                Lịch sử: []
+                Câu hỏi mới: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+                OUTPUT:
+                {{
+                    "standalone_question": "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+                }}
+                ---
+
+                VÍ DỤ (Làm rõ QUY TẮC "VIẾT LẠI"):
+                ---
+                Lịch sử: [Human: "cho tôi các món ăn nổi tiếng ở tphcm"\nAI: "TPHCM có món A, B, C..."]
+                Câu hỏi mới: "Tôi muốn đi du lịch 3 ngày 2 đêm"
+                OUTPUT:
+                {{
+                    "standalone_question": "Tôi muốn đi du lịch 3 ngày 2 đêm ở tphcm"
+                }}
+                ---
+                Lịch sử: [Human: "Tôi muốn đi du lịch Thành phố Hồ Chí Minh"]
+                Câu hỏi mới: "Ở đó có gì chơi?"
+                OUTPUT:
+                {{
+                    "standalone_question": "Ở Thành phố Hồ Chí Minh có gì chơi?"
+                }}
+                ---
+                Lịch sử: [Human: "Tôi muốn đi Hà Nội"]
+                Câu hỏi mới: "lên kế hoạch du lịch 2 ngày"
+                OUTPUT:
+                {{
+                    "standalone_question": "Lên kế hoạch du lịch 2 ngày ở Hà Nội"
+                }}
+                ---
+                Lịch sử: [Human: "Cầu Rồng đẹp thật!"\nAI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
+                Câu hỏi mới: "Mấy giờ vậy?"
+                OUTPUT:
+                {{
+                    "standalone_question": "Cầu Rồng phun lửa vào mấy giờ?"
+                }}
+                ---
+
+                Bây giờ, hãy thực hiện nhiệm vụ cho Lịch sử và Câu hỏi mới dưới đây:
+            """
+
+            history_lines = []
+            for msg in chat_history:
+                role = "Human" if msg.type == 'human' else "AI"
+                history_lines.append(f"{role}: \"{msg.content}\"")
+            
+            chat_history_str = "\n".join(history_lines)
+            if chat_history_str:
+                chat_history_str = f"[{chat_history_str}]"
+            else:
+                chat_history_str = "[]"
+
+            print('\n---------------------Formatted Chat History:---------------------\n', chat_history_str)
+
+            # Create prompt template for contextualizing question
+            contextualize_q_prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", contextualize_q_system_prompt),
+                    ("human", "Lịch sử: {chat_history}\nCâu hỏi mới: {input}")
+                ]
+            )
+
+            # Create the chain for generating standalone question
+            contextualize_q_chain = contextualize_q_prompt | llm_create_standalone_question() | JsonOutputParser()
+
+            standalone_question = contextualize_q_chain.invoke(
+                {
+                    "input": question,
+                    "chat_history": chat_history_str
+                }
+            )
+
+            return standalone_question
+        except Exception as e:
+            print(f"Error in building standalone question: {e}")
+            return {"standalone_question": question}
         
-        contextualize_q_system_prompt = """Bạn là một công cụ viết lại câu. Nhiệm vụ duy nhất của bạn là chuyển đổi "Câu hỏi mới" và "Lịch sử trò chuyện" thành một "Câu hỏi độc lập" (standalone question) có thể hiểu được mà không cần lịch sử.
+    
+    def classify_query_for_schedule(query: str):
+        try:
+            llm = llm_classify()
 
-            Định dạng JSON BẮT BUỘC:
-            ```json
-            {{
-                "standalone_question": "Câu hỏi độc lập được viết lại ở đây"
-            }}
-            ```
-        
-            QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
+            # Prompt hệ thống đã được viết lại hoàn toàn cho nhiệm vụ mới
+            system = """You are a specialized query classifier assistant.
 
-            1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI vào trường JSON. Nếu bạn trả lời, bạn đã thất bại.
-            2.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
-            3.  **QUY TẮC "VIẾT LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?") HOẶC là một câu hỏi chung chung (ví dụ: "lên kế hoạch", "đi du lịch") mà bối cảnh địa điểm nằm trong Lịch sử, hãy dùng "Lịch sử trò chuyện" và bối cảnh địa điểm đó để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
-            4.  Nếu "Câu hỏi mới" chỉ gồm 1-2 từ ngắn gọn như “Tiếp”, “Còn gì?”, “Ở đó sao?”, “Món đó ngon không?”, hãy sử dụng “Lịch sử” để suy ra chủ đề hoặc địa điểm gần nhất và viết lại thành câu hỏi đầy đủ có ngữ nghĩa hoàn chỉnh.
-            5.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 2):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
-            6.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
-            7.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
-            8.  **CHỌN NGỮ CẢNH MỚI NHẤT:** Nếu có nhiều câu trong "Lịch sử trò chuyện", chỉ sử dụng ngữ cảnh gần nhất của người dùng (Human) để viết lại câu hỏi. Không dựa vào các câu hỏi cũ hơn hoặc câu trả lời của AI nếu chúng không liên quan trực tiếp đến "Câu hỏi mới".
-            9.  Nếu "Lịch sử" không chứa thông tin địa điểm, thời gian, hoặc chủ đề rõ ràng, giữ nguyên "Câu hỏi mới" mà không suy diễn thêm.
+                Your SOLE task is to analyze the user's "Question" to determine two things:
+                1.  **Topic**: Is the question an explicit request for planning/scheduling?
+                2.  **Location**: Is the location context one of the 3 allowed cities?
 
-            BẮT BUỘC: Output phải là JSON hợp lệ duy nhất, không được chứa ký tự hoặc giải thích ngoài cặp dấu json.
+                ### CLASSIFICATION RULES:
 
-            ---
-            VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
-            ---
-            Lịch sử: []
-            Câu hỏi mới: "Hãy lên kế hoạch du lịch tại cần giờ"
-            OUTPUT:
-            {{
-                "standalone_question": "Hãy lên kế hoạch du lịch tại cần giờ"
-            }}
-            ---
-            Lịch sử: []
-            Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
-            OUTPUT:
-            {{
-                "standalone_question": "Các món ăn ngon ở Hà Nội là gì?"
-            }}
-            ---
-            Lịch sử: [Human: "Tôi muốn đi du lịch TPHCM"]
-            Câu hỏi mới: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
-            OUTPUT:
-            {{
-                "standalone_question": "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
-            }}
-            ---
-            Lịch sử: []
-            Câu hỏi mới: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
-            OUTPUT:
-            {{
-                "standalone_question": "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
-            }}
-            ---
+                1.  **Topic**
+                    -   You are ONLY allowed to identify one topic: "Plan".
+                    -   A question is "Plan" IF AND ONLY IF it explicitly asks to create an **itinerary**, **schedule**, **tour**, or a **multi-day plan** (e.g., "2-day plan", "3 days 2 nights itinerary", "make a 1-day tour").
+                    -   If it is a "Plan", output: `"Topic": "Plan"`
+                    -   If the question just asks for options (e.g., "what to do in the morning?"), asks about dining, or anything else that is NOT an itinerary, it is **NOT** a "Plan". In this case, output: `"Topic": null`
 
-            VÍ DỤ (Làm rõ QUY TẮC "VIẾT LẠI"):
-            ---
-            Lịch sử: [Human: "cho tôi các món ăn nổi tiếng ở tphcm"\nAI: "TPHCM có món A, B, C..."]
-            Câu hỏi mới: "Tôi muốn đi du lịch 3 ngày 2 đêm"
-            OUTPUT:
-            {{
-                "standalone_question": "Tôi muốn đi du lịch 3 ngày 2 đêm ở tphcm"
-            }}
-            ---
-            Lịch sử: [Human: "Tôi muốn đi du lịch Thành phố Hồ Chí Minh"]
-            Câu hỏi mới: "Ở đó có gì chơi?"
-            OUTPUT:
-            {{
-                "standalone_question": "Ở Thành phố Hồ Chí Minh có gì chơi?"
-            }}
-            ---
-            Lịch sử: [Human: "Tôi muốn đi Hà Nội"]
-            Câu hỏi mới: "lên kế hoạch du lịch 2 ngày"
-            OUTPUT:
-            {{
-                "standalone_question": "Lên kế hoạch du lịch 2 ngày ở Hà Nội"
-            }}
-            ---
-            Lịch sử: [Human: "Cầu Rồng đẹp thật!"\nAI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
-            Câu hỏi mới: "Mấy giờ vậy?"
-            OUTPUT:
-            {{
-                "standalone_question": "Cầu Rồng phun lửa vào mấy giờ?"
-            }}
-            ---
+                2.  **Location**
+                    -   Represents only the main city context.
+                    -   Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
+                    -   If one of these cities is **explicitly mentioned**, output that city name. Example: `"Location": "Hà Nội"`
+                    -   If **no allowed city** is mentioned (or only a district/small area like "Cần Giờ", "Quận 5" is mentioned), you MUST output: `"Location": null`
+                    -   Do NOT return a list. Only return a single string or `null`.
 
-            Bây giờ, hãy thực hiện nhiệm vụ cho Lịch sử và Câu hỏi mới dưới đây:
-        """
+                3.  **Output Format**
+                    -   Output ONLY valid JSON.
+                    -   Structure:
+                        ```json
+                        {
+                        "Topic": "Plan" | null,
+                        "Location": "Hà Nội" | "Thành phố Hồ Chí Minh" | "Đà Nẵng" | null
+                        }
+                        ```
+                    -   No explanations.
 
-        history_lines = []
-        for msg in chat_history:
-            role = "Human" if msg.type == 'human' else "AI"
-            history_lines.append(f"{role}: \"{msg.content}\"")
-        
-        chat_history_str = "\n".join(history_lines)
-        if chat_history_str:
-            chat_history_str = f"[{chat_history_str}]"
-        else:
-            chat_history_str = "[]"
+                ---
+                ### EXAMPLES
 
-        print('\n---------------------Formatted Chat History:---------------------\n', chat_history_str)
+                Question: "Lên kế hoạch du lịch 2 ngày ở Hà Nội"
+                Output:
+                {{"Topic": "Plan", "Location": "Hà Nội"}}
 
-        # Create prompt template for contextualizing question
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", contextualize_q_system_prompt),
-                ("human", "Lịch sử: {chat_history}\nCâu hỏi mới: {input}")
-            ]
-        )
+                Question: "Tôi muốn đi Cần Giờ 1 ngày"
+                Output:
+                {{"Topic": "Plan", "Location": null}}
 
-        # Create the chain for generating standalone question
-        contextualize_q_chain = contextualize_q_prompt | llm_create_standalone_question() | JsonOutputParser()
+                Question: "Gợi ý lịch trình 3 ngày 2 đêm tại Đà Nẵng"
+                Output:
+                {{"Topic": "Plan", "Location": "Đà Nẵng"}}
 
-        standalone_question = contextualize_q_chain.invoke(
-            {
-                "input": question,
-                "chat_history": chat_history_str
+                Question: "Những nơi vui chơi ở Sài Gòn buổi tối?"
+                Output:
+                {{"Topic": null, "Location": "Thành phố Hồ Chí Minh"}}
+
+                Question: "Khách sạn nào gần chợ Bến Thành?"
+                Output:
+                {{"Topic": null, "Location": null}}
+
+                Question: "Xin chào!"
+                Output:
+                {{"Topic": null, "Location": null}}
+
+                Question: "Bánh mì Hà Nội được bán ở đâu ở Hồ Chí Minh?"
+                Output:
+                {{"Topic": null, "Location": "Thành phố Hồ Chí Minh"}}
+                ---
+
+                Now classify the following Question:
+            """
+
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system),
+                ("user", "Question: {question}")
+            ])
+
+            classification_chain = prompt | llm | JsonOutputParser()
+
+            print(f"\n---------------------Classifying query for schedule: {query}---------------------\n")
+            classification = classification_chain.invoke({"question": query})
+
+            raw_topic = classification.get("Topic")
+            raw_location = classification.get("Location")
+
+            final_topic = None
+            if raw_topic == "Plan":
+                final_topic = "Plan"
+
+            final_location = None
+            allowed_cities = ["Hà Nội", "Thành phố Hồ Chí Minh", "Đà Nẵng"]
+            if raw_location in allowed_cities:
+                final_location = raw_location
+                
+            # Tạo kết quả cuối cùng, sạch sẽ
+            final_result = {
+                "Topic": final_topic,
+                "Location": final_location
             }
-        )
+            
+            print(f"\n---------------------Classification result: {final_result}---------------------\n")
 
-        return standalone_question
+            return final_result
+
+        except Exception as e:
+            # Trả về None cho cả hai nếu có lỗi xảy ra
+            print(f"Query classification error: {e}")
+            return {"Topic": None, "Location": None}

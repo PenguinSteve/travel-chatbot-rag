@@ -15,6 +15,46 @@ from langchain.retrievers import ParentDocumentRetriever
 router = APIRouter()
 
 
+@router.post("/create-schedule", response_model=AskResponse)
+def create_schedule(payload: AskRequest,
+        mongodb_instance: MongoClient = Depends(get_mongodb_instance),
+        parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+        pinecone_reranker: PineconeRerank = Depends(get_pinecone_reranker),
+        ):
+     
+    print("\n---------------------Received Create Schedule Request---------------------\n"
+    "Payload:", payload)
+    message = payload.message
+    session_id = payload.session_id
+
+    # Validate input
+    if not message:
+        raise HTTPException(status_code=400, detail="Missing 'message'")
+    
+    chat_repository = ChatRepository(mongodb_instance)
+
+    classify_result = RAGService.classify_query_for_schedule(message)
+    topic = classify_result.get("Topic") or None
+    location = classify_result.get("Location") or None
+
+    if location is None:
+        chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+        chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))
+
+        return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
+
+    if topic is None or "Plan" not in topic:
+        chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
+        chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.", role="ai"))
+
+        return AskResponse(message=payload.message, answer="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.")
+    
+    agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker)
+    response = agent_service.run_agent(question=message, session_id=session_id)
+    response_text = response.get("output")
+
+    return AskResponse(message=payload.message, answer=response_text)
+
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest,
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
@@ -61,7 +101,7 @@ def ask(payload: AskRequest,
 
     filter = {}
     if isinstance(topics, list) and len(topics) > 0:
-                filter["Topic"] = {"$in": topics}
+        filter["Topic"] = {"$in": topics}
     if isinstance(locations, list) and len(locations) > 0:
         filter["Location"] = {"$in": locations}
 
@@ -70,20 +110,7 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        if 'Plan' in topics and len(locations) == 0:
-
-            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-            chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))
-
-            return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
-        
-        elif 'Plan' in topics:
-            agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker)
-            response = agent_service.run_agent(question=standalone_question, session_id=session_id)
-            response_text = response.get("output")
-            return AskResponse(message=payload.message, answer=response_text)
-        else :
-            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, pinecone_reranker)
+        response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, pinecone_reranker)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 

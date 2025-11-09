@@ -21,7 +21,7 @@ def retrieve_document_rag(topics: list = [], locations: list = [], query: str = 
 
     filter = {}
     if isinstance(topics, list) and len(topics) > 0:
-                filter["Topic"] = {"$in": topics}
+        filter["Topic"] = {"$in": topics}
     if isinstance(locations, list) and len(locations) > 0:
         filter["Location"] = {"$in": locations}
         

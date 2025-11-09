@@ -59,24 +59,19 @@ def llm_summary() -> ChatGroq:
         timeout=timeout,
     )
 
-def llm_create_standalone_question() -> ChatGroq:
-    api_key = settings.GROQ_API_KEY
+def llm_create_standalone_question() -> ChatGoogleGenerativeAI:
+    api_key = settings.GEMINI_API_KEY_CREATE_STANDALONE_QUESTION
     if not api_key:
-        raise RuntimeError("GROQ_API_KEY not set")
+        raise RuntimeError("GEMINI_API_KEY_CREATE_STANDALONE_QUESTION not set")
 
     model = settings.LLM_MODEL_CREATE_STANDALONE_QUESTION
     temperature = 0.0
 
-    # max_tokens = 1000
-
-    timeout = settings.LLM_TIMEOUT
-
-    return ChatGroq(
-        api_key=api_key,
+    return ChatGoogleGenerativeAI(
         model=model,
         temperature=temperature,
-        # max_tokens=max_tokens,
-        timeout=timeout,
+        max_output_tokens=200,
+        google_api_key=api_key,
     )
 
 def llm_rag() -> ChatGroq:
