@@ -355,9 +355,9 @@ class RAGService:
             Lịch sử: [Human: "cho tôi các món ăn nổi tiếng ở tphcm"\nAI: "TPHCM có món A, B, C..."]
             Câu hỏi mới: "Tôi muốn đi du lịch 3 ngày 2 đêm"
             OUTPUT:
-            {
+            {{
                 "standalone_question": "Tôi muốn đi du lịch 3 ngày 2 đêm ở tphcm"
-            }
+            }}
             ---
             Lịch sử: [Human: "Tôi muốn đi du lịch Thành phố Hồ Chí Minh"]
             Câu hỏi mới: "Ở đó có gì chơi?"
