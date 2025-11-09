@@ -309,9 +309,14 @@ class RAGService:
             1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI vào trường JSON. Nếu bạn trả lời, bạn đã thất bại.
             2.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
             3.  **QUY TẮC "VIẾT LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?") HOẶC là một câu hỏi chung chung (ví dụ: "lên kế hoạch", "đi du lịch") mà bối cảnh địa điểm nằm trong Lịch sử, hãy dùng "Lịch sử trò chuyện" và bối cảnh địa điểm đó để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
-            4.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 2):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
-            5.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
-            6.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
+            4.  Nếu "Câu hỏi mới" chỉ gồm 1-2 từ ngắn gọn như “Tiếp”, “Còn gì?”, “Ở đó sao?”, “Món đó ngon không?”, hãy sử dụng “Lịch sử” để suy ra chủ đề hoặc địa điểm gần nhất và viết lại thành câu hỏi đầy đủ có ngữ nghĩa hoàn chỉnh.
+            5.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 2):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
+            6.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
+            7.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
+            8.  **CHỌN NGỮ CẢNH MỚI NHẤT:** Nếu có nhiều câu trong "Lịch sử trò chuyện", chỉ sử dụng ngữ cảnh gần nhất của người dùng (Human) để viết lại câu hỏi. Không dựa vào các câu hỏi cũ hơn hoặc câu trả lời của AI nếu chúng không liên quan trực tiếp đến "Câu hỏi mới".
+            9.  Nếu "Lịch sử" không chứa thông tin địa điểm, thời gian, hoặc chủ đề rõ ràng, giữ nguyên "Câu hỏi mới" mà không suy diễn thêm.
+
+            BẮT BUỘC: Output phải là JSON hợp lệ duy nhất, không được chứa ký tự hoặc giải thích ngoài cặp dấu json.
 
             ---
             VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
