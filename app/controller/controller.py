@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from langchain_pinecone import PineconeRerank
 from pymongo import MongoClient
 from app.models.chat_schema import ChatMessage
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever, get_reranker_service
+from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever, get_pinecone_reranker
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
 from app.services.reranker_service import RerankerService
@@ -18,7 +19,7 @@ router = APIRouter()
 def ask(payload: AskRequest,
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
         parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
-        reranker_service: RerankerService = Depends(get_reranker_service)
+        pinecone_reranker: PineconeRerank = Depends(get_pinecone_reranker),
         ):
 
     print("\n---------------------Received Ask Request---------------------\n" \
@@ -40,7 +41,7 @@ def ask(payload: AskRequest,
     chat_history = build_chat_history_from_db(past_messages)
 
     # Create standalone question from chat history
-    standalone_question = RAGService.build_standalone_question(message, chat_history)
+    standalone_question = RAGService.build_standalone_question(message, chat_history).get("standalone_question", message)
 
     print("\n---------------------Original question---------------------\n")
     print(message)
@@ -73,22 +74,14 @@ def ask(payload: AskRequest,
             return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
         
         elif 'Plan' in topics:
-            agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever)
+            agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker)
             response = agent_service.run_agent(question=standalone_question, session_id=session_id)
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
-            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, reranker_service)
+            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, pinecone_reranker)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
-
-    print("\n---------------------Context Documents:---------------------\n")
-    for index, doc in enumerate(context_docs):
-        if index > 0:
-            print("--------------------------------------------------------------\n")
-        print(f"Context number {index}:\n {doc.page_content}")
-        print("  Metadata:", doc.metadata)
-    print("\n---------------------End of Context Documents---------------------\n")
 
     return AskResponse(message=payload.message, answer=response_text)
 

@@ -8,11 +8,13 @@ from app.repositories.pinecone_repository import PineconeRepository
 from app.config.mongodb import get_database, get_docstore
 from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ParentDocumentRetriever
+from langchain_pinecone import PineconeRerank
+from app.config.settings import settings
 
 import os
 from dotenv import load_dotenv
 
-from app.services.reranker_service import RerankerService
+# from app.services.reranker_service import RerankerService
 load_dotenv()
 
 
@@ -51,11 +53,15 @@ async def life_span(app: FastAPI):
         app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
                                                                     child_splitter=child_splitter, 
                                                                     vectorstore=vector_store,
-                                                                    search_kwargs={"k":10, "filter":{} })
+                                                                    search_kwargs={"k":15, "filter":{} })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
 
-        # Initialize reranker service
-        app.state.reranker_service = RerankerService()
+        # # Initialize reranker service
+        # app.state.reranker_service = RerankerService()
+
+        # Initialize pinecone reranker
+        app.state.pinecone_reranker = PineconeRerank(pinecone_api_key=settings.PINECONE_API_KEY, top_n=5)
+        print('\n---------------------Initialized PineconeRerank---------------------\n')
 
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")

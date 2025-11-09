@@ -40,3 +40,9 @@ def get_reranker_service(request: Request):
         raise RuntimeError("RerankerService not initialized in app state.")
 
     return request.app.state.reranker_service
+
+def get_pinecone_reranker(request: Request):
+    if not hasattr(request.app.state, 'pinecone_reranker'):
+        raise RuntimeError("PineconeRerank not initialized in app state.")
+
+    return request.app.state.pinecone_reranker

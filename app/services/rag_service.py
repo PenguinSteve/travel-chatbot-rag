@@ -1,5 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from langchain_pinecone import PineconeRerank
 from app.core.llm import llm_create_standalone_question, llm_rag, llm_classify
 import os
 from app.models.chat_schema import ChatMessage
@@ -10,7 +11,7 @@ from app.services.reranker_service import RerankerService
 class RAGService:
     
     @staticmethod
-    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None, reranker: RerankerService = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None, pinecone_reranker: PineconeRerank = None):
         try:
             message = payload.message
             session_id = payload.session_id
@@ -93,7 +94,7 @@ class RAGService:
             
             
             # Retrieve relevant documents
-            context_docs = RAGService.retrieve_documents(retriever, standalone_question, reranker)
+            context_docs = RAGService.retrieve_documents(retriever, standalone_question, pinecone_reranker)
 
             formatted_contexts = []
             for doc in context_docs:
@@ -140,13 +141,17 @@ class RAGService:
                     - If the question is unrelated to tourism or a greeting → `"Topic": ["Off_topic"]`.
 
                     2. **Location**
-                    - Represents geographic areas mentioned.
+                    - Represents the **primary geographic area(s)** that are the **context** or **main subject** of the user's question.
                     - Must be a **list** (even if only one element).
                     - Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
                     - You MUST NOT guess the city if it is not **explicitly** mentioned by name.
                     - If the question contains a **district, ward, street name, or any smaller area** (e.g., "Quận 5", "Cần Giờ", "Phú Thọ Hòa", "Nghĩa An") → you MUST **NOT** map it to any city name.
-                    - If multiple valid cities appear → include all of them.
-                    - If no allowed city name is present, always output an empty list [].
+                    
+                    - **RULE 2a (Search Context vs. Subject):** If a city name is part of a *subject* (e.g., "bánh mì Hà Nội") but the question is asking for information *within another city* (e.g., "...ở Hồ Chí Minh"), you MUST **only** include the city that is the *search context* ("Thành phố Hồ Chí Minh").
+                    
+                    - **RULE 2b (Comparisons):** If the question is *comparing* multiple cities (e.g., "Sự khác biệt giữa Hà Nội và Đà Nẵng"), then include all valid cities mentioned.
+                    
+                    - If no allowed city name is present as the main context, ALWAYS output an empty list [].
 
                     3. **Output format**
                     - Output ONLY valid JSON.
@@ -178,16 +183,30 @@ class RAGService:
                     Question: "Khách sạn nào gần chợ Bến Thành?"
                     Output: 
                     {{"Topic": ["Accommodation"], "Location": []}}
-
+                    
                     Question: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm du lịch nào gần đó?"
                     Output:
                     {{"Topic": ["Food", "Attraction"], "Location": []}}
-
+                    
                     Question: "Khi đến Hội quán Vhị Pù (264 Hải Thượng Lãn Ông), du khách có thể thưởng thức món ăn truyền thống nào của người Hoa tại khu vực Chợ Lớn gần đó?"
                     Output:
                     {{"Topic": ["Food", "Attraction"], "Location": []}}
 
-                    ### EXAMPLES (Demonstrating the ALLOWED CITIES):
+                    ---
+                    
+                    ### EXAMPLES (Demonstrating Search Context vs. Subject):
+
+                    Question: "Bánh mì Hà Nội được bán ở đâu ở Hồ Chí Minh?"
+                    Output:
+                    {{"Topic": ["Food", "Restaurant"], "Location": ["Thành phố Hồ Chí Minh"]}}
+
+                    Question: "Tôi muốn ăn phở Hà Nội tại Đà Nẵng"
+                    Output:
+                    {{"Topic": ["Food", "Restaurant"], "Location": ["Đà Nẵng"]}}
+                    
+                    ---
+
+                    ### EXAMPLES (Demonstrating Comparisons and Standard Cases):
                     
                     Question: "Các khách sạn ở Đà Nẵng có gần biển không?"
                     Output:
@@ -236,17 +255,38 @@ class RAGService:
             raise RuntimeError(f"Query classification error: {e}")
 
     @staticmethod
-    def retrieve_documents(retriever, query: str, reranker: RerankerService = None):
+    def retrieve_documents(retriever, query: str, pinecone_reranker: PineconeRerank = None):
         try:
             start_time_retrieval = os.times()
             print("\n---------------------Retrieving relevant documents...---------------------\n")
             context_docs = retriever.invoke(query)
             end_time_retrieval = os.times()
-
-            if reranker:
-                context_docs = reranker.rerank(query, context_docs)
-
             print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
+
+            # Reranker service
+            # if reranker:
+            #     print("\n---------------------Reranking documents...---------------------\n")
+            #     start_time_reranking = os.times()
+            #     context_docs = reranker.rerank(query, context_docs)
+            #     end_time_reranking = os.times()
+            #     print("\n---------------------Reranked documents in", end_time_reranking.user - start_time_reranking.user, "seconds---------------------\n")
+
+            # Pinecone Reranker
+            if pinecone_reranker:
+                print("\n---------------------Reranking documents with PineconeRerank...---------------------\n")
+                start_time_reranking = os.times()
+                context_docs = pinecone_reranker.compress_documents(documents=context_docs, query=query)
+                end_time_reranking = os.times()
+                print("\n---------------------Reranked documents in", end_time_reranking.user - start_time_reranking.user, "seconds---------------------\n")
+
+            print("\n---------------------Context Documents:---------------------\n")
+            for index, doc in enumerate(context_docs):
+                if index > 0:
+                    print("--------------------------------------------------------------\n")
+                print(f"Context number {index}:\n {doc.page_content}")
+                print("  Metadata:", doc.metadata)
+            print("\n---------------------End of Context Documents---------------------\n")
+
             return context_docs
 
         except Exception as e:
@@ -257,47 +297,76 @@ class RAGService:
         
         contextualize_q_system_prompt = """Bạn là một công cụ viết lại câu. Nhiệm vụ duy nhất của bạn là chuyển đổi "Câu hỏi mới" và "Lịch sử trò chuyện" thành một "Câu hỏi độc lập" (standalone question) có thể hiểu được mà không cần lịch sử.
 
+            Định dạng JSON BẮT BUỘC:
+            ```json
+            {{
+                "standalone_question": "Câu hỏi độc lập được viết lại ở đây"
+            }}
+            ```
+        
             QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
 
-            1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI. Nếu bạn trả lời, bạn đã thất bại.
-            2.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, BẮT BUỘC phải xuất ra (output) Y HỆT câu hỏi đó.
-            3.  **QUY TẮC "VIẾT LẠI" (CHỈ KHI CẦN):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?"), hãy dùng "Lịch sử trò chuyện" để viết lại thành câu hỏi đầy đủ.
-            4.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
-            5.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
+            1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI vào trường JSON. Nếu bạn trả lời, bạn đã thất bại.
+            2.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
+            3.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
+            4.  **QUY TẮC "VIẾT LẠI" (CHỈ KHI CẦN):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?"), hãy dùng "Lịch sử trò chuyện" để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
+            5.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
+            6.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
 
             ---
             VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
             ---
             Lịch sử: []
             Câu hỏi mới: "Hãy lên kế hoạch du lịch tại cần giờ"
-            Câu hỏi độc lập: "Hãy lên kế hoạch du lịch tại cần giờ"
+            OUTPUT:
+            {{
+                "standalone_question": "Hãy lên kế hoạch du lịch tại cần giờ"
+            }}
             ---
             Lịch sử: []
             Câu hỏi mới: "Các món ăn ngon ở Hà Nội là gì?"
-            Câu hỏi độc lập: "Các món ăn ngon ở Hà Nội là gì?"
+            OUTPUT:
+            {{
+                "standalone_question": "Các món ăn ngon ở Hà Nội là gì?"
+            }}
             ---
             Lịch sử: [Human: "Tôi muốn đi du lịch TPHCM"]
             Câu hỏi mới: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
-            Câu hỏi độc lập: "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+            OUTPUT:
+            {{
+                "standalone_question": "Hãy cho tôi danh sách các món ăn ngon tại hồ chí minh"
+            }}
             ---
             Lịch sử: []
             Câu hỏi mới: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
-            Câu hỏi độc lập: "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+            OUTPUT:
+            {{
+                "standalone_question": "Tại quận 4, con đường nào nổi tiếng với các quán hải sản nướng và món ốc đặc sản của TPHCM"
+            }}
             ---
 
             VÍ DỤ (Làm rõ QUY TẮC "VIẾT LẠI"):
             ---
-            Lịch sử: [Human: "Tôi muốn đi du lịch Huế"]
+            Lịch sử: [Human: "Tôi muốn đi du lịch Thành phố Hồ Chí Minh"]
             Câu hỏi mới: "Ở đó có gì chơi?"
-            Câu hỏi độc lập: "Huế có những địa điểm du lịch nào?"
+            OUTPUT:
+            {{
+                "standalone_question": "Ở Thành phố Hồ Chí Minh có gì chơi?"
+            }}
             ---
-            Lịch sử: [Human: "Tôi muốn đi Huế"]
+            Lịch sử: [Human: "Tôi muốn đi Hà Nội"]
             Câu hỏi mới: "lên kế hoạch du lịch 2 ngày"
-            Câu hỏi độc lập: "Lên kế hoạch du lịch Huế 2 ngày cho tôi"
+            OUTPUT:
+            {{
+                "standalone_question": "Lên kế hoạch du lịch 2 ngày ở Huế"
+            }}
             ---
             Lịch sử: [Human: "Cầu Rồng đẹp thật!", AI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
             Câu hỏi mới: "Mấy giờ vậy?"
-            Câu hỏi độc lập: "Cầu Rồng phun lửa lúc mấy giờ vào cuối tuần?"
+            OUTPUT:
+            {{
+                "standalone_question": "Cầu Rồng phun lửa vào mấy giờ?"
+            }}
             ---
 
             Bây giờ, hãy thực hiện nhiệm vụ cho Lịch sử và Câu hỏi mới dưới đây:
@@ -308,7 +377,7 @@ class RAGService:
             role = "Human" if msg.type == 'human' else "AI"
             history_lines.append(f"{role}: \"{msg.content}\"")
         
-        chat_history_str = ", ".join(history_lines)
+        chat_history_str = "\n".join(history_lines)
         if chat_history_str:
             chat_history_str = f"[{chat_history_str}]"
         else:
@@ -325,7 +394,7 @@ class RAGService:
         )
 
         # Create the chain for generating standalone question
-        contextualize_q_chain = contextualize_q_prompt | llm_create_standalone_question() | StrOutputParser()
+        contextualize_q_chain = contextualize_q_prompt | llm_create_standalone_question() | JsonOutputParser()
 
         standalone_question = contextualize_q_chain.invoke(
             {
