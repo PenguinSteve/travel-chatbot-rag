@@ -5,11 +5,12 @@ import os
 from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
 from app.request.AskRequest import ChatRequest
+from app.services.reranker_service import RerankerService
 
 class RAGService:
     
     @staticmethod
-    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None, reranker: RerankerService = None):
         try:
             message = payload.message
             session_id = payload.session_id
@@ -92,7 +93,7 @@ class RAGService:
             
             
             # Retrieve relevant documents
-            context_docs = RAGService.retrieve_documents(retriever, standalone_question)
+            context_docs = RAGService.retrieve_documents(retriever, standalone_question, reranker)
 
             formatted_contexts = []
             for doc in context_docs:
@@ -114,7 +115,6 @@ class RAGService:
             
             print("\n---------------------Generated response:---------------------\n")
             print(response)
-            print("\n---------------------Context documents:---------------------\n")
             return response, context_docs
 
         except Exception as e:
@@ -136,6 +136,7 @@ class RAGService:
                     - You may include **multiple topics** if the question clearly refers to multiple aspects.
                         - Example: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm tham quan nào gần đó?"  
                         → `"Topic": ["Food", "Attraction"]`
+                    - If the question mentions nearly places or proximity → include relevant topics like 'Attraction', 'Accommodation', or 'Restaurant' as applicable.
                     - If the question is unrelated to tourism or a greeting → `"Topic": ["Off_topic"]`.
 
                     2. **Location**
@@ -160,7 +161,7 @@ class RAGService:
 
                     ---
 
-                    ### NEGATIVE EXAMPLES (very important):
+                    ### EXAMPLES (Demonstrating the STRICT REJECTION RULE):
 
                     Question: "Lễ hội Nghinh Ông Cần Giờ thường được tổ chức vào thời gian nào hàng năm?"
                     Output:
@@ -169,24 +170,25 @@ class RAGService:
                     Question: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
                     Output:
                     {{"Topic": ["Food", "Festival", "Attraction"], "Location": []}}
-
+                    
                     Question: "Địa đạo Phú Thọ Hòa (Quận Tân Phú) mang giá trị gì?"
                     Output:
                     {{"Topic": ["Attraction"], "Location": []}}
                     
-                    Question: "Có khách sạn nào gần Hội quán Hà Chương (802 Nguyễn Trãi) phù hợp cho khách du lịch văn hóa?"
-                    Output:
-                    {{"Topic": ["Accommodation"], "Location": []}}
-                ### POSITIVE EXAMPLES:
-            
                     Question: "Khách sạn nào gần chợ Bến Thành?"
                     Output: 
-                    {{"Topic": ["Accommodation"], "Location": ["Thành phố Hồ Chí Minh"]}}
+                    {{"Topic": ["Accommodation"], "Location": []}}
 
                     Question: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm du lịch nào gần đó?"
                     Output:
-                    {{"Topic": ["Food", "Attraction"], "Location": ["Thành phố Hồ Chí Minh"]}}
+                    {{"Topic": ["Food", "Attraction"], "Location": []}}
 
+                    Question: "Khi đến Hội quán Vhị Pù (264 Hải Thượng Lãn Ông), du khách có thể thưởng thức món ăn truyền thống nào của người Hoa tại khu vực Chợ Lớn gần đó?"
+                    Output:
+                    {{"Topic": ["Food", "Attraction"], "Location": []}}
+
+                    ### EXAMPLES (Demonstrating the ALLOWED CITIES):
+                    
                     Question: "Các khách sạn ở Đà Nẵng có gần biển không?"
                     Output:
                     {{"Topic": ["Accommodation"], "Location": ["Đà Nẵng"]}}
@@ -194,6 +196,10 @@ class RAGService:
                     Question: "Ẩm thực Hà Nội và Đà Nẵng khác nhau thế nào?"
                     Output:
                     {{"Topic": ["Food"], "Location": ["Hà Nội", "Đà Nẵng"]}}
+
+                    Question: "Khách sạn nào ở Thành phố Hồ Chí Minh gần chợ Bến Thành?"
+                    Output:
+                    {{"Topic": ["Accommodation"], "Location": ["Thành phố Hồ Chí Minh"]}}
 
                     Question: "Xin chào!"
                     Output:
@@ -213,7 +219,6 @@ class RAGService:
 
             print(f"\n---------------------Classifying query: {query}---------------------\n")
             classification = classification_chain.invoke({"question": query})
-            print(f"\n---------------------Classification result: {classification}---------------------\n")
 
             # Filter allowed topics and locations
             allowed_cities = ["Hà Nội", "Thành phố Hồ Chí Minh", "Đà Nẵng"]
@@ -222,18 +227,25 @@ class RAGService:
             classification["Topic"] = topics
             locations = [loc for loc in classification.get("Location", []) if loc in allowed_cities]
             classification["Location"] = locations
+
+            print(f"\n---------------------Classification result: {classification}---------------------\n")
+
             return classification
 
         except Exception as e:
             raise RuntimeError(f"Query classification error: {e}")
 
     @staticmethod
-    def retrieve_documents(retriever, query: str):
+    def retrieve_documents(retriever, query: str, reranker: RerankerService = None):
         try:
             start_time_retrieval = os.times()
             print("\n---------------------Retrieving relevant documents...---------------------\n")
             context_docs = retriever.invoke(query)
             end_time_retrieval = os.times()
+
+            if reranker:
+                context_docs = reranker.rerank(query, context_docs)
+
             print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
             return context_docs
 

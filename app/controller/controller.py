@@ -4,9 +4,10 @@ from app.models.chat_schema import ChatMessage
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever
+from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever, get_reranker_service
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
+from app.services.reranker_service import RerankerService
 from app.utils.chat_history import build_chat_history_from_db
 from langchain.retrievers import ParentDocumentRetriever
 
@@ -16,7 +17,8 @@ router = APIRouter()
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest,
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
-        parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+        parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+        reranker_service: RerankerService = Depends(get_reranker_service)
         ):
 
     print("\n---------------------Received Ask Request---------------------\n" \
@@ -76,7 +78,7 @@ def ask(payload: AskRequest,
             response_text = response.get("output")
             return AskResponse(message=payload.message, answer=response_text)
         else :
-            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository)
+            response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, reranker_service)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 

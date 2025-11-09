@@ -34,3 +34,9 @@ def get_parent_document_retriever(request: Request) -> ParentDocumentRetriever:
         raise RuntimeError("ParentDocumentRetriever not initialized in app state.")
 
     return request.app.state.parent_document_retriever
+
+def get_reranker_service(request: Request):
+    if not hasattr(request.app.state, 'reranker_service'):
+        raise RuntimeError("RerankerService not initialized in app state.")
+
+    return request.app.state.reranker_service

@@ -11,6 +11,8 @@ from langchain.retrievers import ParentDocumentRetriever
 
 import os
 from dotenv import load_dotenv
+
+from app.services.reranker_service import RerankerService
 load_dotenv()
 
 
@@ -49,8 +51,11 @@ async def life_span(app: FastAPI):
         app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
                                                                     child_splitter=child_splitter, 
                                                                     vectorstore=vector_store,
-                                                                    search_kwargs={"k":10, "filter":{} })
+                                                                    search_kwargs={"k":15, "filter":{} })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
+
+        # Initialize reranker service
+        app.state.reranker_service = RerankerService()
 
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")

@@ -19,7 +19,7 @@ langgraph
 langchain_google_genai
 
 # Vector Database
-pinecone==6.0.0
+pinecone==7.3.0
 
 # Embeddings
 sentence-transformers
@@ -31,3 +31,5 @@ openpyxl
 # HTTP Client
 httpx
 
+# Rerank
+torch==2.8.9

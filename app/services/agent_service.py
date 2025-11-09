@@ -2,6 +2,7 @@ from langchain.agents import create_react_agent, AgentExecutor
 from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
 from langchain.retrievers import ParentDocumentRetriever
+from app.services.reranker_service import RerankerService
 from app.tools.index import TOOLS
 from app.core.llm import llm_plan
 from app.config.prompt import get_react_prompt
@@ -13,15 +14,16 @@ from app.tools.rag import retrieve_document_rag_wrapper
 
 
 class AgentService:
-    def __init__(self, retriever: ParentDocumentRetriever, chat_repository: ChatRepository):
+    def __init__(self, retriever: ParentDocumentRetriever, chat_repository: ChatRepository, reranker: RerankerService):
         self.llm = llm_plan()
         self.chat_repository = chat_repository
         self.prompt = get_react_prompt()
         self.retriever = retriever
+        self.reranker = reranker
 
         rag_tool = Tool(
             name="retrieve_document_rag",
-            func=lambda tool_input: retrieve_document_rag_wrapper(tool_input, retriever=self.retriever),
+            func=lambda tool_input: retrieve_document_rag_wrapper(tool_input, retriever=self.retriever, reranker=self.reranker),
             description=(
                 "Retrieve detailed travel information from the RAG knowledge base for a given topic "
                 "in one of the supported cities (Thành phố Hồ Chí Minh, Đà Nẵng, or Hà Nội). "

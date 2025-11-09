@@ -11,6 +11,7 @@ from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.storage import MongoDBStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from app.services.reranker_service import RerankerService
 
 class RAGEvaluation:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
@@ -37,11 +38,12 @@ class RAGEvaluation:
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
-            search_kwargs={"k":5, "filter":{}}
+            search_kwargs={"k":15, "filter":{}}
         )
+        self.reranker = RerankerService()
 
     # Implement RAG response generation for evaluation
-    def generate_response(self, retriever, question: str, topics, locations) -> str:
+    def generate_response(self, retriever, question: str, topics, locations, reranker) -> str:
         llm = llm_rag()
 
         system = """### Role and Goal
@@ -93,7 +95,7 @@ class RAGEvaluation:
 
             return response
         
-        context_docs = RAGService.retrieve_documents(retriever, question)
+        context_docs = RAGService.retrieve_documents(retriever, question, reranker)
 
         formatted_contexts = []
         for doc in context_docs:
@@ -272,7 +274,7 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             # Generate response
             if 'Plan' not in topics:
-                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations)
+                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations, RAGEvaluation_instance.reranker)
             else:
                 answer = "N/A for planning questions in this evaluation."
                 context_docs = []
@@ -281,8 +283,8 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
             formatted_contexts = []
             for doc in context_docs:
                 name = doc.metadata.get('Name', 'Không rõ')
-                
-                context_str = f"Tên tài liệu: {name}\nNội dung: {doc.page_content}"
+
+                context_str = f"Tên tài liệu: {name}\nNội dung: {doc.page_content}\nScore: {doc.metadata.get('rerank_score', 'N/A')}"
                 formatted_contexts.append(context_str)
 
             context_combined = "\n\n".join(formatted_contexts)
