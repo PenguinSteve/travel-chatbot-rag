@@ -29,7 +29,6 @@ class RAGEvaluation:
             db_name=settings.MONGO_DB_NAME,
             collection_name=settings.MONGO_STORE_COLLECTION_NAME
         )
-        self.flashrank_comp = FlashrankRerank(top_n=3, model="ms-marco-MultiBERT-L-12")
         self.llm_rag_eval_faithfulness = llm_evaluate_faithfulness()
         self.llm_rag_eval_relevance = llm_evaluate_relevance()
         self.llm_rag_eval_precision = llm_evaluate_precision()
@@ -38,7 +37,7 @@ class RAGEvaluation:
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
-            search_kwargs={"k":15, "filter":{}}
+            search_kwargs={"k":10, "filter":{}}
         )
         self.reranker = RerankerService()
 

@@ -51,7 +51,7 @@ async def life_span(app: FastAPI):
         app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
                                                                     child_splitter=child_splitter, 
                                                                     vectorstore=vector_store,
-                                                                    search_kwargs={"k":15, "filter":{} })
+                                                                    search_kwargs={"k":10, "filter":{} })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')
 
         # Initialize reranker service
