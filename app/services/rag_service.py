@@ -358,10 +358,10 @@ class RAGService:
             Câu hỏi mới: "lên kế hoạch du lịch 2 ngày"
             OUTPUT:
             {{
-                "standalone_question": "Lên kế hoạch du lịch 2 ngày ở Huế"
+                "standalone_question": "Lên kế hoạch du lịch 2 ngày ở Hà Nội"
             }}
             ---
-            Lịch sử: [Human: "Cầu Rồng đẹp thật!", AI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
+            Lịch sử: [Human: "Cầu Rồng đẹp thật!"\nAI: "Đúng vậy, Cầu Rồng phun lửa vào cuối tuần."]
             Câu hỏi mới: "Mấy giờ vậy?"
             OUTPUT:
             {{

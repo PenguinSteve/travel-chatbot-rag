@@ -7,11 +7,12 @@ from app.services.rag_service import RAGService
 from app.core.llm import llm_rag, llm_evaluate_faithfulness, llm_evaluate_relevance, llm_evaluate_precision, llm_evaluate_recall
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langchain_community.document_compressors import FlashrankRerank
+# from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.storage import MongoDBStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from app.services.reranker_service import RerankerService
+# from app.services.reranker_service import RerankerService
+from langchain_pinecone import PineconeRerank
 
 class RAGEvaluation:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
@@ -39,10 +40,10 @@ class RAGEvaluation:
             vectorstore=vector_store,
             search_kwargs={"k":10, "filter":{}}
         )
-        self.reranker = RerankerService()
+        self.pinecone_reranker = PineconeRerank(top_n=5, pinecone_api_key=settings.PINECONE_API_KEY)
 
     # Implement RAG response generation for evaluation
-    def generate_response(self, retriever, question: str, topics, locations, reranker) -> str:
+    def generate_response(self, retriever, question: str, topics, locations) -> str:
         llm = llm_rag()
 
         system = """### Role and Goal
@@ -93,8 +94,8 @@ class RAGEvaluation:
             response = rag_chain.invoke(prompt_input)
 
             return response
-        
-        context_docs = RAGService.retrieve_documents(retriever, question, reranker)
+
+        context_docs = RAGService.retrieve_documents(retriever, question, self.pinecone_reranker)
 
         formatted_contexts = []
         for doc in context_docs:
@@ -273,7 +274,7 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             # Generate response
             if 'Plan' not in topics:
-                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations, RAGEvaluation_instance.reranker)
+                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations)
             else:
                 answer = "N/A for planning questions in this evaluation."
                 context_docs = []
