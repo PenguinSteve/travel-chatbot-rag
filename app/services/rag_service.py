@@ -307,14 +307,21 @@ class RAGService:
             QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN THỦ):
 
             1.  **NGHIÊM CẤM TRẢ LỜI CÂU HỎI:** Vai trò của bạn KHÔNG phải là trả lời. Nhiệm vụ chỉ là VIẾT LẠI CÂU HỎI vào trường JSON. Nếu bạn trả lời, bạn đã thất bại.
-            2.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
-            3.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
-            4.  **QUY TẮC "VIẾT LẠI" (CHỈ KHI CẦN):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?"), hãy dùng "Lịch sử trò chuyện" để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
+            2.  **NGHIÊM CẤM SAO CHÉP LỊCH SỬ:** KHÔNG được sao chép câu trả lời của AI từ "Lịch sử trò chuyện". Chỉ sử dụng "Lịch sử trò chuyện" để HIỂU NGHĨA và BỐI CẢNH của "Câu hỏi mới".
+            3.  **QUY TẮC "VIẾT LẠI" (ƯU TIÊN SỐ 1):** Nếu "Câu hỏi mới" là câu hỏi ngắn, phụ thuộc vào lịch sử (ví dụ: "Ở đó giá bao nhiêu?", "Mấy giờ vậy?") HOẶC là một câu hỏi chung chung (ví dụ: "lên kế hoạch", "đi du lịch") mà bối cảnh địa điểm nằm trong Lịch sử, hãy dùng "Lịch sử trò chuyện" và bối cảnh địa điểm đó để viết lại thành câu hỏi đầy đủ và điền vào trường "standalone_question".
+            4.  **QUY TẮC "LẶP LẠI" (ƯU TIÊN SỐ 2):** Nếu "Câu hỏi mới" đã là một câu hỏi độc lập, đầy đủ ý nghĩa và không cần lịch sử, hãy điền Y HỆT nó vào trường "standalone_question".
             5.  **GIỚI HẠN OUTPUT:** CHỈ được xuất ra câu hỏi độc lập đã được viết lại. Không thêm lời chào, lời giải thích, hay bất cứ thứ gì khác.
             6.  **GIỮ NGUYÊN ĐẠI TỪ:** Phải giữ nguyên đại từ của người dùng ("tôi", "cho tôi", "của tôi").
 
             ---
             VÍ DỤ (Làm rõ QUY TẮC "LẶP LẠI"):
+            ---
+            Lịch sử: [Human: "cho tôi các món ăn nổi tiếng ở tphcm", AI: "TPHCM có món A, B, C..."]
+            Câu hỏi mới: "Tôi muốn đi du lịch 3 ngày 2 đêm"
+            OUTPUT:
+            {
+                "standalone_question": "Tôi muốn đi du lịch 3 ngày 2 đêm ở tphcm"
+            }
             ---
             Lịch sử: []
             Câu hỏi mới: "Hãy lên kế hoạch du lịch tại cần giờ"

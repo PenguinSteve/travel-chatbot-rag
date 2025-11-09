@@ -40,17 +40,20 @@ def ask(payload: AskRequest,
 
     chat_history = build_chat_history_from_db(past_messages)
 
-    # Create standalone question from chat history
-    standalone_question = RAGService.build_standalone_question(message, chat_history).get("standalone_question", message)
-
     print("\n---------------------Original question---------------------\n")
     print(message)
+    standalone_question = None
+    if(len(chat_history) > 0):
+        # Create standalone question from chat history
+        standalone_question = RAGService.build_standalone_question(message, chat_history).get("standalone_question", message)
+        
+        print("\n---------------------Standalone question---------------------\n")
+        print(standalone_question)
 
-    print("\n---------------------Standalone question---------------------\n")
-    print(standalone_question)
-
-    # Classify query to get topic and location
-    classify_result = RAGService.classify_query(standalone_question)
+    if(standalone_question is None):
+        classify_result = RAGService.classify_query(message)
+    else:
+        classify_result = RAGService.classify_query(standalone_question)
 
     topics = classify_result.get("Topic") or []
     locations = classify_result.get("Location") or []
