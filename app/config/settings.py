@@ -34,8 +34,17 @@ class Settings(BaseSettings):
 
     # DATABASE SETTINGS
     MONGO_DB_NAME: str
+    MONGO_DB_NAME_SCHEDULE: str
     MONGO_DB_PASSWORD: str 
     MONGO_STORE_COLLECTION_NAME: str = "documents"
+
+    #REDIS SETTINGS
+    REDIS_HOST: str = "redis"
+    REDIS_PORT: int = 6379
+
+    # JWT SETTINGS
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
 
     class Config:
         env_file = ".env"

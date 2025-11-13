@@ -10,6 +10,7 @@ from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ParentDocumentRetriever
 from langchain_pinecone import PineconeRerank
 from app.config.settings import settings
+from app.config.redis_cache import get_redis_instance
 
 import os
 from dotenv import load_dotenv
@@ -63,6 +64,10 @@ async def life_span(app: FastAPI):
         app.state.pinecone_reranker = PineconeRerank(pinecone_api_key=settings.PINECONE_API_KEY, top_n=5)
         print('\n---------------------Initialized PineconeRerank---------------------\n')
 
+        # Initialize redis cache
+        app.state.redis_instance = get_redis_instance()
+        print('\n---------------------Initialized Redis cache instance---------------------\n')
+
     except Exception as e:
         raise RuntimeError(f"Failed to create vector_store/Pinecone repository/Flashrank compressor/Database connection at start up: {e}")
 
@@ -74,6 +79,10 @@ async def life_span(app: FastAPI):
     if hasattr(app.state, "db"):
         app.state.db.client.close()
         print("MongoDB connection closed")
+
+    if hasattr(app.state, "redis_instance"):
+        app.state.redis_instance.close()
+        print("Redis connection closed")
     
 
 app = FastAPI(lifespan=life_span)

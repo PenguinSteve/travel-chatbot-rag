@@ -5,13 +5,13 @@ from app.core.llm import llm_create_standalone_question, llm_rag, llm_classify
 import os
 from app.models.chat_schema import ChatMessage
 from app.repositories.chat_repository import ChatRepository
+from app.repositories.redis_chat_repository import RedisChatRepository
 from app.request.AskRequest import ChatRequest
-from app.services.reranker_service import RerankerService
 
 class RAGService:
     
     @staticmethod
-    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: ChatRepository = None, pinecone_reranker: PineconeRerank = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: (ChatRepository | RedisChatRepository) = None , pinecone_reranker: PineconeRerank = None):
         try:
             message = payload.message
             session_id = payload.session_id
@@ -42,7 +42,7 @@ class RAGService:
                 6.  **Handling Conversation History:**
                     * Use the 'Conversation History' to understand follow-up questions (e.g., "what else?", "besides those...").
                     * When answering a follow-up, **AVOID REPEATING** information already present in the 'Conversation History'. Prioritize NEW information found in the 'Context'.
-                7.  **Handling Off-topic/Greeting:** If the 'Question' is a greeting or unrelated to tourism, respond politely, be friendly, and steer the conversation back to tourism (e.g., "Hello, how can I help you with your travel plans today?").
+                7.  **Handling Off-topic/Greeting:** If the 'Question' is a greeting or unrelated to tourism, respond politely, be friendly, and steer the conversation back to tourism (e.g., "Hello, how can I help you with your travel plans today?", "I can't help with that, but I can assist you with travel information.").
                 8. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
                 9.  **Language:** You must always answer in Vietnamese.
                 """
@@ -277,14 +277,6 @@ class RAGService:
             end_time_retrieval = os.times()
             print("\n---------------------Retrieved relevant documents in", end_time_retrieval.user - start_time_retrieval.user, "seconds---------------------\n")
 
-            # Reranker service
-            # if reranker:
-            #     print("\n---------------------Reranking documents...---------------------\n")
-            #     start_time_reranking = os.times()
-            #     context_docs = reranker.rerank(query, context_docs)
-            #     end_time_reranking = os.times()
-            #     print("\n---------------------Reranked documents in", end_time_reranking.user - start_time_reranking.user, "seconds---------------------\n")
-
             # Pinecone Reranker
             if pinecone_reranker:
                 print("\n---------------------Reranking documents with PineconeRerank...---------------------\n")
@@ -464,11 +456,11 @@ class RAGService:
                 3.  **Output Format**
                     -   Output ONLY valid JSON.
                     -   Structure:
-                        ```json
-                        {
+                        ```jsonW
+                        {{
                         "Topic": "Plan" | null,
                         "Location": "Hà Nội" | "Thành phố Hồ Chí Minh" | "Đà Nẵng" | null
-                        }
+                        }}
                         ```
                     -   No explanations.
 

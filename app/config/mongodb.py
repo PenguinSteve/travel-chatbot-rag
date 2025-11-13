@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 from langchain_community.storage import MongoDBStore
 from app.config.settings import settings
+
+
 def get_database() -> MongoClient:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
     client = MongoClient(CONNECTION_STRING)
@@ -16,3 +18,8 @@ def get_docstore() -> MongoDBStore:
     )
 
     return docstore
+
+def get_database_schedule() -> MongoClient:
+    CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
+    client = MongoClient(CONNECTION_STRING)
+    return client[settings.MONGO_DB_NAME_SCHEDULE]

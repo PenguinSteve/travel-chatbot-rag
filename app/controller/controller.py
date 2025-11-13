@@ -2,21 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from langchain_pinecone import PineconeRerank
 from pymongo import MongoClient
 from app.models.chat_schema import ChatMessage
+from app.repositories.redis_chat_repository import RedisChatRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
 from app.services.rag_service import RAGService
-from app.core.dependencies import get_mongodb_instance, get_parent_document_retriever, get_pinecone_reranker
+from app.core.dependencies import (
+    get_mongodb_instance,
+    get_parent_document_retriever,
+    get_pinecone_reranker,
+    get_chat_repository)
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
-from app.services.reranker_service import RerankerService
 from app.utils.chat_history import build_chat_history_from_db
 from langchain.retrievers import ParentDocumentRetriever
+from app.middleware.auth_jwt import get_current_user_payload_strict
 
 router = APIRouter()
 
 
 @router.post("/create-schedule", response_model=AskResponse)
 def create_schedule(payload: AskRequest,
+        user_payload: dict = Depends(get_current_user_payload_strict),
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
         parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
         pinecone_reranker: PineconeRerank = Depends(get_pinecone_reranker),
@@ -27,11 +33,15 @@ def create_schedule(payload: AskRequest,
     message = payload.message
     session_id = payload.session_id
 
+    user_id = user_payload.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token: User ID missing.")
+
     # Validate input
     if not message:
         raise HTTPException(status_code=400, detail="Missing 'message'")
     
-    chat_repository = ChatRepository(mongodb_instance)
+    chat_repository = ChatRepository(mongodb_instance, user_id)
 
     classify_result = RAGService.classify_query_for_schedule(message)
     topic = classify_result.get("Topic") or None
@@ -49,7 +59,7 @@ def create_schedule(payload: AskRequest,
 
         return AskResponse(message=payload.message, answer="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.")
     
-    agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker)
+    agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker, user_id=user_id)
     response = agent_service.run_agent(question=message, session_id=session_id)
     response_text = response.get("output")
 
@@ -57,7 +67,7 @@ def create_schedule(payload: AskRequest,
 
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest,
-        mongodb_instance: MongoClient = Depends(get_mongodb_instance),
+        chat_repository: (ChatRepository | RedisChatRepository) = Depends(get_chat_repository),
         parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
         pinecone_reranker: PineconeRerank = Depends(get_pinecone_reranker),
         ):
@@ -71,9 +81,6 @@ def ask(payload: AskRequest,
     # Validate input
     if not message:
         raise HTTPException(status_code=400, detail="Missing 'message'")
-
-    chat_repository = ChatRepository(mongodb_instance)
-
 
     # Get all history messages from db
     past_messages = chat_repository.get_chat_history(session_id=session_id)

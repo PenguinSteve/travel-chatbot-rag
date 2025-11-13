@@ -32,5 +32,11 @@ openpyxl
 httpx
 
 # Rerank
-torch==2.8.0
-sentencepiece==0.2.1
+# torch==2.8.0
+# sentencepiece==0.2.1
+
+# Redis
+redis==7.0.1
+
+# JWT
+python-jose==3.5.0
