@@ -3,7 +3,7 @@ from app.config.settings import settings
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-def _gemini(model: str, temperature: float = 0.0, max_output_tokens: int = 2048) -> ChatGoogleGenerativeAI:
+def _gemini(model: str, temperature: float = 0.0, max_output_tokens: int = 4096) -> ChatGoogleGenerativeAI:
     api_key = settings.GEMINI_API_KEY  
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not set")

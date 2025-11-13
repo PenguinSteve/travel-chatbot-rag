@@ -67,19 +67,29 @@ class AgentService:
     def run_agent(self, session_id: str, question: str):
         result = self.executor.invoke({"input": question})
 
+        raw_output = result.get('output')
+
+        decoded_answer = None         
+        ai_message_for_history = "" 
+
         try:
             decoder = json.JSONDecoder()
-            decoded_answer, _ = decoder.raw_decode(result.get('output'))
-        
+            decoded_answer, _ = decoder.raw_decode(raw_output)
+            
+            if isinstance(decoded_answer, dict):
+                ai_message_for_history = decoded_answer.get('message', raw_output)
+            else:
+                ai_message_for_history = raw_output
+                decoded_answer = raw_output
+
         except json.JSONDecodeError:
-            decoded_answer = result.get('output')
+            ai_message_for_history = raw_output  # Dùng chuỗi thô (bị cắt) để lưu
+            decoded_answer = raw_output
 
 
         self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
-        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=decoded_answer['message'], role="ai"))
-
-
-
+        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai"))
+    
         return decoded_answer
     
     def schedule_trip_wrapper(self, trip_details_str: str):
