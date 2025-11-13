@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any
 
 class AskResponse(BaseModel):
     message: str
-    answer: str
+    answer: Any
     
 class ChatResponse(BaseModel):
     chat_history: str

@@ -66,9 +66,21 @@ class AgentService:
 
     def run_agent(self, session_id: str, question: str):
         result = self.executor.invoke({"input": question})
+
+        try:
+            decoder = json.JSONDecoder()
+            decoded_answer, _ = decoder.raw_decode(result.get('output'))
+        
+        except json.JSONDecodeError:
+            decoded_answer = result.get('output')
+
+
         self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
-        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=result['output'], role="ai"))
-        return result
+        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=decoded_answer['message'], role="ai"))
+
+
+
+        return decoded_answer
     
     def schedule_trip_wrapper(self, trip_details_str: str):
         print(f"\n--- Wrapping schedule_tool for user: {self.user_id} ---\n")

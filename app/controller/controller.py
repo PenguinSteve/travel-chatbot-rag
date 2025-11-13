@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException, Request
 from langchain_pinecone import PineconeRerank
 from pymongo import MongoClient
@@ -60,10 +61,9 @@ def create_schedule(payload: AskRequest,
         return AskResponse(message=payload.message, answer="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.")
     
     agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker, user_id=user_id)
-    response = agent_service.run_agent(question=message, session_id=session_id)
-    response_text = response.get("output")
+    response = agent_service.run_agent(question=message, session_id=session_id)    
 
-    return AskResponse(message=payload.message, answer=response_text)
+    return AskResponse(message=payload.message, answer=response)
 
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest,

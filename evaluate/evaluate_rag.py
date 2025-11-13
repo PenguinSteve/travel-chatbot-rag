@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from typing import List, Dict, Any
 from app.config.settings import settings
@@ -7,11 +6,9 @@ from app.services.rag_service import RAGService
 from app.core.llm import llm_rag, llm_evaluate_faithfulness, llm_evaluate_relevance, llm_evaluate_precision, llm_evaluate_recall
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-# from langchain_community.document_compressors import FlashrankRerank
 from langchain_community.storage import MongoDBStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from app.services.reranker_service import RerankerService
 from langchain_pinecone import PineconeRerank
 
 class RAGEvaluation:
@@ -38,7 +35,7 @@ class RAGEvaluation:
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
-            search_kwargs={"k":10, "filter":{}}
+            search_kwargs={"k":15, "filter":{}}
         )
         self.pinecone_reranker = PineconeRerank(top_n=5, pinecone_api_key=settings.PINECONE_API_KEY)
 
@@ -67,9 +64,12 @@ class RAGEvaluation:
             * If this is a follow-up question (e.g., user asks for 70 after you just gave 50), simply state naturally that you don't have additional items.
             * **Example of a good response (natural):** "Hiện tại tôi chỉ có danh sách 50 món ăn này thôi." or "Danh sách của tôi có 50 món, tôi không tìm thấy món nào khác."
             * **Example of a bad response (robot):** "Trong tài liệu tôi chỉ tìm thấy 50 món."
-            6.  **Handling Off-topic/Greeting:** If the 'Question' is a greeting or unrelated to tourism, respond politely, be friendly, and steer the conversation back to tourism (e.g., "Hello, how can I help you with your travel plans today?").
-            7. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
-            8.  **Language:** You must always answer in Vietnamese.
+            6.  **Handling Conversation History:**
+                * Use the 'Conversation History' to understand follow-up questions (e.g., "what else?", "besides those...").
+                * When answering a follow-up, **AVOID REPEATING** information already present in the 'Conversation History'. Prioritize NEW information found in the 'Context'.
+            7.  **Handling Off-topic/Greeting:** If the 'Question' is a greeting or unrelated to tourism, respond politely, be friendly, and steer the conversation back to tourism (e.g., "Hello, how can I help you with your travel plans today?", "I can't help with that, but I can assist you with travel information.").
+            8. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
+            9.  **Language:** You must always answer in Vietnamese.
         """
         
         prompt = ChatPromptTemplate.from_messages([
@@ -273,11 +273,9 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
             retriever.search_kwargs["filter"] = filter
 
             # Generate response
-            if 'Plan' not in topics:
-                answer, context_docs = RAGEvaluation_instance.generate_response(retriever, question, topics, locations)
-            else:
-                answer = "N/A for planning questions in this evaluation."
-                context_docs = []
+            answer, context_docs = RAGEvaluation_instance.generate_response(
+                retriever, question, topics, locations
+            )
 
             # Prepare context string
             formatted_contexts = []
@@ -289,7 +287,7 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             context_combined = "\n\n".join(formatted_contexts)
 
-            print(f"Context combined for evaluation:\n{context_combined}")
+            # print(f"Context combined for evaluation:\n{context_combined}")
 
             # # Evaluate metrics faithfulness
             # faithfulness_result = RAGEvaluation_instance.evaluate_faithfulness(
