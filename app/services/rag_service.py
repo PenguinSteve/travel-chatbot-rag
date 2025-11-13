@@ -186,6 +186,10 @@ class RAGService:
                     Output:
                     {{"Topic": ["Festival"], "Location": []}}
 
+                    Question: "Nhà lưu niệm Bác Hồ ở số 5 Châu Văn Liêm có vai trò lịch sử gì?"
+                    Output:
+                    {{"Topic": ["Attraction"], "Location": []}}
+
                     Question: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
                     Output:
                     {{"Topic": ["Food", "Festival", "Attraction"], "Location": []}}
