@@ -61,7 +61,10 @@ def create_schedule(payload: AskRequest,
         return AskResponse(message=payload.message, answer="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.")
     
     agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker, user_id=user_id)
-    response = agent_service.run_agent(question=message, session_id=session_id)    
+    try:
+        response = agent_service.run_agent(question=message, session_id=session_id)
+    except Exception as e:
+        response = f"Tôi gặp lỗi trong khi tạo kế hoạch du lịch cho bạn, hãy thử lại sau."
 
     return AskResponse(message=payload.message, answer=response)
 

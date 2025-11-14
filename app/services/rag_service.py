@@ -30,15 +30,15 @@ class RAGService:
                 * **DO NOT** talk about yourself as an AI or mention your data sources. 
                 * **AVOID ALL** phrases like: "in the documents I received," "based on the context," "in the provided information," "trong các tài liệu," "dựa trên ngữ cảnh," or "thông tin tôi nhận được."
                 * Just state the information directly.
-                4.  **Handling **Completely** Missing Information (The "I don't know" rule):**
-                * This rule ONLY applies if the 'Context' is **completely empty** OR **contains no relevant information AT ALL** to the 'Question'.
-                * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Do not add any other explanation.
-                5.  **Handling **Partial** Information (Best-Effort Rule):**
+                4.  **Handling **Partial** Information (Best-Effort Rule):**
                 * Your main goal is to be helpful.
-                * If the user asks for a specific quantity (e.g., "top 50 dishes"), but the 'Context' provides **fewer items** than requested, you **MUST** provide **all the relevant items you found in the 'Context'**.
+                * If the user asks for a specific thing (e.g., "top 50 dishes", "Places to stay in somewhere near somewhere", "Places to visit near somewhere"), but the 'Context' provides **fewer items** or **items in context which is not near by mentioned places**, you **MUST** suggest **some the relevant items you found in the 'Context'**.
                 * If this is a follow-up question (e.g., user asks for 70 after you just gave 50), simply state naturally that you don't have additional items.
                 * **Example of a good response (natural):** "Hiện tại tôi chỉ có danh sách 50 món ăn này thôi." or "Danh sách của tôi có 50 món, tôi không tìm thấy món nào khác."
                 * **Example of a bad response (robot):** "Trong tài liệu tôi chỉ tìm thấy 50 món."
+                5.  **Handling **Completely** Missing Information (The "I don't know" rule):**
+                * This rule ONLY applies if the 'Context' is **completely empty** OR **contains no relevant information AT ALL** to the 'Question'.
+                * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Do not add any other explanation.
                 6.  **Handling Conversation History:**
                     * Use the 'Conversation History' to understand follow-up questions (e.g., "what else?", "besides those...").
                     * When answering a follow-up, **AVOID REPEATING** information already present in the 'Conversation History'. Prioritize NEW information found in the 'Context'.
@@ -137,6 +137,10 @@ class RAGService:
                     - You may include **multiple topics** if the question clearly refers to multiple aspects.
                         - Example: "Phố ẩm thực Hồ Thị Kỷ có món gì ngon và có điểm tham quan nào gần đó?"  
                         → `"Topic": ["Food", "Attraction"]`
+                        - Example: "Khu vực Hội quán Nghĩa An trong lễ hội có bán món ăn nào không?"
+                        → `"Topic": ["Food", "Festival", "Attraction"]`
+                        - Example: "Những nơi lưu trú nào khi tham gia lễ hội Nghinh Ông Cần Giờ?"
+                        → `"Topic": ["Accommodation", "Festival", "Attraction"]`
                     - If the question mentions nearly places or proximity → include relevant topics like 'Attraction', 'Accommodation', or 'Restaurant' as applicable.
                     - Only assign 'Plan' if the user explicitly asks to create an itinerary, a schedule, or a multi-day plan (e.g., "2-day plan", "3 days 2 nights", "itinerary for the weekend").
                     - DO NOT assign 'Plan' if the user is simply asking for options or filtering a search by a part of the day (e.g., "in the morning", "in the evening", "at night").

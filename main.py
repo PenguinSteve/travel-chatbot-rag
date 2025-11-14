@@ -6,7 +6,6 @@ from app.controller import controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
 from app.config.mongodb import get_database, get_docstore
-from langchain_community.document_compressors import FlashrankRerank
 from langchain.retrievers import ParentDocumentRetriever
 from langchain_pinecone import PineconeRerank
 from app.config.settings import settings
@@ -35,10 +34,6 @@ async def life_span(app: FastAPI):
         # Initialize pinecone repository
         app.state.pinecone_repository = PineconeRepository(vector_store=vector_store)
         print('\n---------------------Initialized Pinecone repository with vector store---------------------\n')
-
-        # Initialize Flashrank compressor
-        app.state.flashrank_compressor = FlashrankRerank(top_n=3)
-        print('\n---------------------Initialized Flashrank compressor---------------------\n')
 
         # Initialize Docstore mongodb
         docstore = get_docstore()
