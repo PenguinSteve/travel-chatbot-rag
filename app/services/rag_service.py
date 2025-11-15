@@ -144,7 +144,7 @@ class RAGService:
                     - If the question mentions nearly places or proximity → include relevant topics like 'Attraction', 'Accommodation', or 'Restaurant' as applicable.
                     - Only assign 'Plan' if the user explicitly asks to create an itinerary, a schedule, or a multi-day plan (e.g., "2-day plan", "3 days 2 nights", "itinerary for the weekend").
                     - DO NOT assign 'Plan' if the user is simply asking for options or filtering a search by a part of the day (e.g., "in the morning", "in the evening", "at night").
-                    - If the question is unrelated to tourism or a greeting → `"Topic": ["Off_topic"]`.
+                    - If the question is unrelated to tourism or a greeting or the question not mentions the main points to do something → `"Topic": ["Off_topic"]`. - Example: "Xin chào!", "What is your name?", "Cho địa chỉ chi tiết"
 
                     2. **Location**
                     - Represents the **primary geographic area(s)** that are the **context** or **main subject** of the user's question.
