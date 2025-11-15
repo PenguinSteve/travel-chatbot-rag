@@ -37,7 +37,7 @@ class RAGEvaluation:
             vectorstore=vector_store,
             search_kwargs={"k":15, "filter":{}}
         )
-        self.pinecone_reranker = PineconeRerank(top_n=5, pinecone_api_key=settings.PINECONE_API_KEY)
+        self.pinecone_reranker = PineconeRerank(top_n=5, pinecone_api_key=settings.PINECONE_API_KEY_RERANKER)
 
     # Implement RAG response generation for evaluation
     def generate_response(self, retriever, question: str, topics, locations) -> str:
@@ -240,7 +240,7 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
     print("Loading evaluation dataset from:", input_path)
     df = pd.read_excel(input_path).fillna("")
 
-    df = df[89:]  # Chạy thử từ dòng 15 đến hết
+    df = df[53:] # Chạy thử từ dòng 15 đến hết
     
     print(df.iloc[0])
 
@@ -343,6 +343,6 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 # --- --------------- Example usage --------------- ---
 if __name__ == "__main__":
     
-    input_path = "./evaluate/data/data_evaluate_DaNang.xlsx"
+    input_path = "./evaluate/data/data_evaluate_Hanoi.xlsx"
 
-    evaluate(input_path, output_path="rag_evaluation_results_DaNang.xlsx")
+    evaluate(input_path, output_path="rag_evaluation_results_Hanoi.xlsx")
