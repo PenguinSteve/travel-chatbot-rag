@@ -44,7 +44,26 @@ def create_schedule(payload: AskRequest,
     
     chat_repository = ChatRepository(mongodb_instance, user_id)
 
-    classify_result = RAGService.classify_query_for_schedule(message)
+    past_messages = chat_repository.get_chat_history(session_id=session_id)
+
+    chat_history = build_chat_history_from_db(past_messages)
+
+    print("\n---------------------Original question---------------------\n")
+    print(message)
+    standalone_question = None
+    if(len(chat_history) > 0):
+        # Create standalone question from chat history
+        standalone_question = RAGService.build_standalone_question(message, chat_history).get("standalone_question", message)
+        
+        print("\n---------------------Standalone question---------------------\n")
+        print(standalone_question)
+
+    if(standalone_question is None):
+        classify_result = RAGService.classify_query_for_schedule(message)
+        standalone_question = message
+    else:
+        classify_result = RAGService.classify_query_for_schedule(standalone_question)
+
     topic = classify_result.get("Topic") or None
     location = classify_result.get("Location") or None
 
@@ -62,7 +81,7 @@ def create_schedule(payload: AskRequest,
     
     agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker, user_id=user_id)
     try:
-        response = agent_service.run_agent(question=message, session_id=session_id)
+        response = agent_service.run_agent(question=standalone_question, session_id=session_id)
     except Exception as e:
         response = f"Tôi gặp lỗi trong khi tạo kế hoạch du lịch cho bạn, hãy thử lại sau."
 
