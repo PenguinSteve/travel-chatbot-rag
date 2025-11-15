@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
 
+    # RERANKER SETTINGS
+    PINECONE_API_KEY_RERANKER: str
+
     class Config:
         env_file = ".env"
         
