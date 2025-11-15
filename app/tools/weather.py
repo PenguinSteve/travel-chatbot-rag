@@ -75,16 +75,37 @@ def weather_forecast(city: str, start_date: str, end_date: str, lang: str = "vi"
     if e < s:
         s, e = e, s  # đảo ngược nếu nhập nhầm
 
-    # WeatherAPI chỉ forecast từ hôm nay trở đi; nếu start_date < hôm nay -> dùng hôm nay
+    # Fix
+    intended_duration_days = (e - s).days + 1
+
+    # 2. Kiểm tra ngày bắt đầu
     today = date.today()
     if s < today:
+        # Nếu ngày bắt đầu là quá khứ, hãy dùng ngày hôm nay
         s = today
-    # số ngày cần lấy (1..14)
+        # Và tính lại ngày kết thúc dựa trên duration
+        # (e.g., s = "2025-11-15" + (3 - 1) ngày = "2025-11-17")
+        e = s + (e - s).__class__(days=intended_duration_days - 1) ### SỬA LỖI ###
+
+    # 3. Tính số ngày cuối cùng và giới hạn (1-14 ngày)
     days = (e - s).days + 1
     if days < 1:
         days = 1
     if days > 14:
         days = 14
+        # Cập nhật lại ngày kết thúc nếu vượt quá 14 ngày
+        e = s + (e-s).__class__(days=13)
+
+    # # WeatherAPI chỉ forecast từ hôm nay trở đi; nếu start_date < hôm nay -> dùng hôm nay
+    # today = date.today()
+    # if s < today:
+    #     s = today
+    # # số ngày cần lấy (1..14)
+    # days = (e - s).days + 1
+    # if days < 1:
+    #     days = 1
+    # if days > 14:
+    #     days = 14
 
     # 1) Lấy toạ độ
     coords = get_coordinates(city=city)

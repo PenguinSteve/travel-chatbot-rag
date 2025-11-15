@@ -83,6 +83,7 @@ def create_schedule(payload: AskRequest,
     try:
         response = agent_service.run_agent(question=standalone_question, session_id=session_id)
     except Exception as e:
+        print(f"Error in create_schedule: {e}")
         response = f"Tôi gặp lỗi trong khi tạo kế hoạch du lịch cho bạn, hãy thử lại sau."
 
     return AskResponse(message=payload.message, answer=response)

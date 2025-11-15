@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     EMBEDDING_MODEL: str = "hiieu/halong_embedding"
     PINECONE_API_KEY: str
-    PINECONE_INDEX_NAME: str = "rag-tourism"
+    PINECONE_INDEX_NAME: str = "tourism-rag"
     DEFAULT_RAG_TOP_K: int = 5
     LLM_MODEL: str = "openai/gpt-oss-120b"
     PORT: int = 8080
@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     GROQ_API_KEY_RECALL: str
 
     # DATABASE SETTINGS
-    MONGO_DB_NAME: str
-    MONGO_DB_NAME_SCHEDULE: str
+    MONGO_DB_NAME: str = "nhattoan664t_db_user"
+    MONGO_DB_NAME_SCHEDULE: str = "travel-tourism"
     MONGO_DB_PASSWORD: str 
     MONGO_STORE_COLLECTION_NAME: str = "documents"
 
