@@ -80,20 +80,29 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
         Action Input: {{ ... JSON trip details ... }}
 
   5. FINAL ANSWER RULES — Relevance and Focus:
-    - The final answer must briefly confirm that the trip plan was successfully created and summarize key trip information such as the destination and duration.
-    - It should also include a friendly note directing the user to view the full details on the system or website.
-    - Keep it concise (1–2 sentences maximum).
-    - Return as the JSON object of result saved from schedule_tool.
-    - Example:
-        {{
-          "message": "Lịch trình du lịch cho Đà Nẵng (3 ngày) đã được tạo và lưu thành công. Bạn có thể vào trang [https://travel-planner.example.com/schedules/trip_danang_001] để xem chi tiết.",
-          "data": {{ ... full schedule data ...}}
-        }}
-        or 
-        {{
-          "message": "Lịch trình cho chuyến đi Thành phố Hồ Chí Minh đã được lưu vào hệ thống. Bạn có thể xem toàn bộ kế hoạch tại trang thông tin lịch trình của bạn.",
-          "data": {{ ... full schedule data ...}}
-        }}
+    Final Answer MUST be a valid JSON object ONLY.
+
+    - Do NOT include any text before or after the JSON.
+    - Do NOT include explanations, greetings, or notes.
+    - Do NOT wrap the JSON in markdown backticks.
+    - Do NOT include the words “Final Answer” inside the JSON.
+
+    The JSON must follow this structure exactly:
+
+    {{
+      "message": "<short confirmation sentence summarizing destination + duration>",
+      "data": <the full JSON object returned from schedule_tool>
+    }}
+
+    If schedule_tool already returned a JSON object, you MUST use it exactly without modification as the value of "data".
+
+    If any tool failed, you MUST still return a valid JSON object:
+    {{
+      "message": "Error occurred",
+      "data": null
+    }}
+
+    Final Answer: <VALID JSON ONLY>
 
   Your response MUST strictly follow this format, with no extra text, explanations, or greetings.
   
