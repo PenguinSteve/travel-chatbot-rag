@@ -79,30 +79,31 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
         Action: schedule_tool
         Action Input: {{ ... JSON trip details ... }}
 
-  5. FINAL ANSWER RULES — Relevance and Focus:
-    Final Answer MUST be a valid JSON object ONLY.
+  5. FINAL ANSWER CONSTRUCTION:
+    - After the `schedule_tool` action is complete, its `Observation` will be a JSON object containing the complete, saved trip data (e.g., `{{ "trip_id": "...", "location": "Đà Nẵng", ... }}`).
+    - Your `Final Answer` **MUST** be a single, valid JSON object. Do **NOT** provide any text, greetings, or explanations *outside* of this JSON object.
+    - This JSON object **MUST** have exactly two keys: `message` and `data`.
+    - The `data` key's value **MUST** be the *entire JSON object* from the `schedule_tool`'s `Observation`.
+    - The `message` key's value **MUST** be a short confirmation string (1-2 sentences) confirming the trip was saved, referencing the location and duration.
+    - **CRITICAL:** The entire response from you must be *ONLY* the JSON object.
 
-    - Do NOT include any text before or after the JSON.
-    - Do NOT include explanations, greetings, or notes.
-    - Do NOT wrap the JSON in markdown backticks.
-    - Do NOT include the words “Final Answer” inside the JSON.
+    - Example structure:
+        {{
+          "message": "<String xác nhận đã lưu, ví dụ: 'Lịch trình cho [Location] ([Duration]) đã được lưu thành công.'>",
+          "data": <Toàn bộ JSON data từ Observation của schedule_tool>
+        }}
 
-    The JSON must follow this structure exactly:
+    - Example 1 (Full Final Answer):
+        {{
+          "message": "Lịch trình du lịch cho Đà Nẵng (3 ngày) đã được tạo và lưu thành công. Bạn có thể xem chi tiết trong hệ thống.",
+          "data": {{ "trip_id": "67f5...", "user_id": "u-123", "location": "Đà Nẵng", "duration_days": 3, "start_date": "...", ... }}
+        }}
 
-    {{
-      "message": "<short confirmation sentence summarizing destination + duration>",
-      "data": <the full JSON object returned from schedule_tool>
-    }}
-
-    If schedule_tool already returned a JSON object, you MUST use it exactly without modification as the value of "data".
-
-    If any tool failed, you MUST still return a valid JSON object:
-    {{
-      "message": "Error occurred",
-      "data": null
-    }}
-
-    Final Answer: <VALID JSON ONLY>
+    - Example 2 (Full Final Answer):
+        {{
+          "message": "Lịch trình cho chuyến đi Thành phố Hồ Chí Minh (2 ngày) đã được lưu. Bạn có thể xem toàn bộ kế hoạch tại trang thông tin lịch trình của bạn.",
+          "data": {{ "trip_id": "98a7...", "user_id": "u-123", "location": "Thành phố Hồ Chí Minh", "duration_days": 2, "start_date": "...", ... }}
+        }}
 
   Your response MUST strictly follow this format, with no extra text, explanations, or greetings.
   

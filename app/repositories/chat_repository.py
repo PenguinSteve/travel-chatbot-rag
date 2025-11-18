@@ -2,10 +2,18 @@ from pymongo.collection import Collection
 from datetime import datetime
 from app.models.chat_schema import ChatMessage
 from pymongo import MongoClient
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
+
 class ChatRepository:
     def __init__(self, db: MongoClient, user_id: str):
         self.collection: Collection = db["chat_sessions"]
-        self.user_id = user_id
+
+        try:
+            self.user_id = ObjectId(user_id)
+        except InvalidId:
+            raise ValueError(f"'{user_id}' không phải là một ObjectId hợp lệ.")
+
 
     def save_message(self, session_id: str, message: ChatMessage):
         self.collection.update_one(
@@ -21,6 +29,9 @@ class ChatRepository:
     def get_chat_history(self, session_id: str):
 
         if session_id == "default":
+            return []
+        
+        if not self.user_id:
             return []
 
         try:

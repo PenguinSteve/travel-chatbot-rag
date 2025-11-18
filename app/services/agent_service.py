@@ -1,4 +1,5 @@
 import json
+import re
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain_pinecone import PineconeRerank
 from app.models.chat_schema import ChatMessage
@@ -69,12 +70,38 @@ class AgentService:
 
         raw_output = result.get('output')
 
+        print(f"\n--- Raw output from agent ---\n{raw_output}\n--- End of raw output ---\n")
+
         decoded_answer = None         
-        ai_message_for_history = "" 
+        ai_message_for_history = ""
+        json_string_to_parse = None
+
+        match = re.search(r"```json\s*(\{.*\})\s*```", raw_output, re.DOTALL)
+
+        # Ưu tiên 1: Dùng regex để tìm khối JSON trong markdown ```json ... ```
+        if match:
+            # Nếu tìm thấy, lấy nội dung JSON từ group 1
+            json_string_to_parse = match.group(1)
+            print(f"\n--- Đã trích xuất JSON bằng Regex (Markdown) ---\n")
+        else:
+            # Ưu tiên 2: Dùng find/rfind làm phương án dự phòng (cho JSON sạch)
+            try:
+                start_index = raw_output.find('{')
+                end_index = raw_output.rfind('}')
+                
+                if start_index != -1 and end_index != -1 and end_index > start_index:
+                    json_string_to_parse = raw_output[start_index : end_index + 1]
+                else:
+                    json_string_to_parse = raw_output 
+                print(f"\n--- Đã trích xuất JSON bằng find/rfind ---\n")
+            except Exception as e:
+                json_string_to_parse = raw_output
+
 
         try:
-            decoder = json.JSONDecoder()
-            decoded_answer, _ = decoder.raw_decode(raw_output)
+            decoded_answer = json.loads(json_string_to_parse)
+
+            print(f"\n--- Decoded answer ---\n{decoded_answer}\n--- End of decoded answer ---\n")
             
             if isinstance(decoded_answer, dict):
                 ai_message_for_history = decoded_answer.get('message', raw_output)
@@ -82,7 +109,7 @@ class AgentService:
                 ai_message_for_history = raw_output
                 decoded_answer = raw_output
 
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             ai_message_for_history = raw_output  # Dùng chuỗi thô (bị cắt) để lưu
             decoded_answer = raw_output
 
