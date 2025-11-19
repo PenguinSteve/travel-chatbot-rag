@@ -5,9 +5,15 @@ import json
 
 def retrieve_document_rag_wrapper(tool_input: str, retriever: ParentDocumentRetriever = None, pinecone_reranker: PineconeRerank = None): 
     payload = json.loads(tool_input) if isinstance(tool_input, str) else tool_input
-    topics = payload["topic"]    
-    locations = payload["location"]
-    query = payload["query"]
+    topics = payload.get("topic", [])
+    locations = payload.get("location", [])
+    query = payload.get("query", "")
+
+    if isinstance(topics, str):
+        topics = [topics]
+        
+    if isinstance(locations, str):
+        locations = [locations]
 
     return retrieve_document_rag(
         topics,

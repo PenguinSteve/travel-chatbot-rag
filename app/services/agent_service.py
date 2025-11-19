@@ -34,8 +34,8 @@ class AgentService:
                 "before generating the trip itinerary. "
                 "Input must be a JSON object in the following format: "
                 "{ "
-                '"topic": ["Food"] | ["Accommodation"] | ["Attraction"] | ["Festival"] | ["Transport"], '
-                '"location": ["Supported city or mapped district name"], '
+                '"topic": A list containing exactly ONE category from: ["Food", "Accommodation", "Attraction", "Festival", "Transport"]. Example: ["Food"], '
+                '"location": [Thành phố Hồ Chí Minh] | [Hà Nội] | [Đà Nẵng], '
                 '"query": "Short, focused question combining topic and location" '
                 "}. "
                 "Output returns relevant travel content and metadata for that topic."
