@@ -50,6 +50,10 @@ class RAGService:
                 * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Do not add any other explanation.
                 8. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
                 9.  **Language:** You must always answer in Vietnamese.
+                10. **Formatting (Strict Markdown):** * The output **MUST** be in clean **Markdown** format. 
+                * Use **Bold** (`**text**`) for names or key highlights.
+                * Use **Bullet points** (`*` or `-`) for lists.
+                * **STRICTLY PROHIBITED:** Do NOT use HTML tags like `<br>`, `\n`, `<div>`, or `<span>` inside the text. If the 'Context' contains HTML tags, **REMOVE** or **REPLACE** them with standard punctuation (commas, periods) or new lines.
                 """
 
             prompt = ChatPromptTemplate.from_messages([
