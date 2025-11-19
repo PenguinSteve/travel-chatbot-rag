@@ -1,6 +1,7 @@
 from pymongo.collection import Collection
 from app.models.schedule_schema import ScheduleItem
 from datetime import datetime
+from bson.objectid import ObjectId
 class ScheduleRepository:
     def __init__(self, db):
         self.collection: Collection = db["schedules"]
@@ -14,7 +15,7 @@ class ScheduleRepository:
             schedule_item = json.loads(schedule_item)
 
         self.collection.insert_one({
-            "user_id": schedule_item["user_id"],
+            "user_id": ObjectId(schedule_item["user_id"]),
             "trip_id": schedule_item["trip_id"],
             "location": schedule_item["location"],
             "duration_days": schedule_item["duration_days"],

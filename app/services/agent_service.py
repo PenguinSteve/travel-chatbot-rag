@@ -34,7 +34,7 @@ class AgentService:
                 "before generating the trip itinerary. "
                 "Input must be a JSON object in the following format: "
                 "{ "
-                '"topic": ["Food"] | ["Accommodation"] | ["Food", "Accommodation"], '
+                '"topic": ["Food"] | ["Accommodation"] | ["Attraction"] | ["Festival"] | ["Transport"], '
                 '"location": ["Supported city or mapped district name"], '
                 '"query": "Short, focused question combining topic and location" '
                 "}. "
@@ -128,7 +128,7 @@ class AgentService:
             # 2. Tiêm user_id (đã lưu trong self)
             trip_details["user_id"] = self.user_id
 
-            generated_trip_id = str(ObjectId())
+            generated_trip_id = ObjectId()
             trip_details["trip_id"] = generated_trip_id
 
             schedule_trip(trip_details) 
