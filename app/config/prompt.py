@@ -87,6 +87,10 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
     - This JSON object **MUST** have exactly two keys: `message` and `data`.
     - The `data` key's value **MUST** be the *entire JSON object* from the `schedule_tool`'s `Observation`.
     - The `message` key's value **MUST** be a short confirmation string (1-2 sentences) confirming the trip was saved, referencing the location and duration.
+    - **CRITICAL TRANSITION RULE:** The transition after the final tool Observation (from `schedule_tool`) MUST be:
+        1. Thought: I now know the final answer.
+        2. Final Answer:
+        3. Followed immediately and ONLY by the final JSON object.
     - **CRITICAL:** The entire response from you must be *ONLY* the JSON object.
 
     - Example structure:
@@ -110,15 +114,6 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
   Your response MUST strictly follow this format, with no extra text, explanations, or greetings.
   
   Thought: Reflect on what to do next. Do I need to use a tool?
-  - If ALL required steps (Food → Accommodation → Attraction → Weather → Summarization → Schedule) have already been completed, you MUST NOT call any more tools.
-  - In this case, you MUST proceed directly to the Final Answer.
-
-  - Only if there are still pending steps in the required sequence, you MUST call the next tool.
-
-  Important:
-  - After the schedule_tool Observation, you MUST immediately produce the Final Answer.
-  - Do NOT produce any additional Thought or Action after schedule_tool.
-  
   Action: the action to take, should be one of [{tool_names}]
   Action Input: JSON input for that tool
   Observation: The result of the action.
