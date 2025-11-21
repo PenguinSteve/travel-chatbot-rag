@@ -308,7 +308,7 @@ class RAGService:
             for index, doc in enumerate(context_docs):
                 if(doc.metadata['relevance_score'] is not None):
                     if doc.metadata['relevance_score'] < 0.3:
-                        print(f"Removing low-relevance document (score: {doc.metadata['relevance_score']}):\n {doc.page_content}\n")
+                        print(f"\nRemoving low-relevance document (score: {doc.metadata['relevance_score']}):\n {doc.page_content}\n")
                         context_docs.remove(doc)
                         continue
                 if index > 0:
