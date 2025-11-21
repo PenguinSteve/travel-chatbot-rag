@@ -302,8 +302,15 @@ class RAGService:
                 end_time_reranking = os.times()
                 print("\n---------------------Reranked documents in", end_time_reranking.user - start_time_reranking.user, "seconds---------------------\n")
 
+            
+
             print("\n---------------------Context Documents:---------------------\n")
             for index, doc in enumerate(context_docs):
+                if(doc.relevance_score is not None):
+                    if doc.relevance_score < 0.3:
+                        print(f"Removing low-relevance document (score: {doc.relevance_score}):\n {doc.page_content}\n")
+                        context_docs.remove(doc)
+                        continue
                 if index > 0:
                     print("--------------------------------------------------------------\n")
                 print(f"Context number {index}:\n {doc.page_content}")
