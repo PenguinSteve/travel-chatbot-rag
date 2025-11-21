@@ -95,19 +95,22 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
 
     - Example structure:
         {{
-          "message": "<String xác nhận đã lưu, ví dụ: 'Lịch trình cho [Location] ([Duration]) đã được lưu thành công.'>",
+          "message": "<String xác nhận đã lưu, ví dụ: 'Lịch trình cho [Location] ([Duration]) đã được lưu thành công. Bạn có thể xem chi tiết lịch trình của mình tại [**http://localhost:3000/plan/schedules**](http://localhost:3000/plan/schedules)
+.'>",
           "data": <Toàn bộ JSON data từ Observation của schedule_tool>
         }}
 
     - Example 1 (Full Final Answer):
         {{
-          "message": "Lịch trình du lịch cho Đà Nẵng (3 ngày) đã được tạo và lưu thành công. Bạn có thể xem chi tiết trong hệ thống.",
+          "message": "Lịch trình du lịch cho Đà Nẵng (3 ngày) đã được tạo và lưu thành công. Bạn có thể xem chi tiết lịch trình của mình tại [**http://localhost:3000/plan/schedules**](http://localhost:3000/plan/schedules)
+.",
           "data": {{ "trip_id": "67f5...", "user_id": "u-123", "location": "Đà Nẵng", "duration_days": 3, "start_date": "...", ... }}
         }}
 
     - Example 2 (Full Final Answer):
         {{
-          "message": "Lịch trình cho chuyến đi Thành phố Hồ Chí Minh (2 ngày) đã được lưu. Bạn có thể xem toàn bộ kế hoạch tại trang thông tin lịch trình của bạn.",
+          "message": "Lịch trình cho chuyến đi Thành phố Hồ Chí Minh (2 ngày) đã được lưu. Bạn có thể xem toàn bộ kế hoạch tại trang thông tin lịch trình của bạn tại [**http://localhost:3000/plan/schedules**](http://localhost:3000/plan/schedules)
+.",
           "data": {{ "trip_id": "98a7...", "user_id": "u-123", "location": "Thành phố Hồ Chí Minh", "duration_days": 2, "start_date": "...", ... }}
         }}
 
