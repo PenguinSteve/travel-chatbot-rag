@@ -140,11 +140,20 @@ def ask(payload: AskRequest,
 
     # Generate response using RAG service
     try:
-        response_text, context_docs = RAGService.generate_response(parent_document_retriever, payload, standalone_question, chat_history, topics, locations, chat_repository, pinecone_reranker)
+        rag_result = RAGService.generate_response(parent_document_retriever,
+                                                payload,
+                                                standalone_question,
+                                                chat_history,
+                                                topics, 
+                                                locations, 
+                                                chat_repository, 
+                                                pinecone_reranker)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"RAG execution error: {e}")
 
-    return AskResponse(message=payload.message, answer=response_text)
+    return AskResponse(message=payload.message,
+                    answer=rag_result.get("response"),
+                    timestamp=rag_result.get("timestamp"))
 
 
 @router.get("/health")

@@ -25,6 +25,7 @@ class ChatRepository:
             },
             upsert=True
         )
+        return message
         
     def get_chat_history(self, session_id: str):
 

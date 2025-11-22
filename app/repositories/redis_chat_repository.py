@@ -23,6 +23,8 @@ class RedisChatRepository:
         # Reset TTL for the session
         self.db.expire(key, self.ttl)
 
+        return message
+
     def get_chat_history(self, session_id: str) -> List[dict]:
         """
         Lấy lịch sử chat từ Redis List.

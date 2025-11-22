@@ -98,8 +98,12 @@ class RAGService:
                 response = rag_chain.invoke(prompt_input)
 
                 chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-                chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
-                return response, []
+                ai_message = chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
+                return {
+                    "response": response,
+                    "context_docs": [],
+                    "timestamp": ai_message.timestamp
+                }
             
             
             # Retrieve relevant documents
@@ -121,12 +125,15 @@ class RAGService:
             response = rag_chain.invoke(prompt_input)
 
             chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
+            ai_message = chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
             
             print("\n---------------------Generated response:---------------------\n")
             print(response)
-            return response, context_docs
-
+            return {
+                "response": response,
+                "context_docs": context_docs,
+                "timestamp": ai_message.timestamp
+            }
         except Exception as e:
             raise RuntimeError(f"RAG generation error: {e}")
         
@@ -301,8 +308,6 @@ class RAGService:
                 context_docs = pinecone_reranker.compress_documents(documents=context_docs, query=query)
                 end_time_reranking = os.times()
                 print("\n---------------------Reranked documents in", end_time_reranking.user - start_time_reranking.user, "seconds---------------------\n")
-
-            
 
             print("\n---------------------Context Documents:---------------------\n")
             for index, doc in enumerate(context_docs):
