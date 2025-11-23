@@ -115,9 +115,9 @@ class AgentService:
 
 
         self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
-        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai"))
+        agent_result = self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai"))
     
-        return decoded_answer
+        return {"answer": decoded_answer, "timestamp": agent_result.timestamp}
     
     def schedule_trip_wrapper(self, trip_details_str: str):
         print(f"\n--- Wrapping schedule_tool for user: {self.user_id} ---\n")
