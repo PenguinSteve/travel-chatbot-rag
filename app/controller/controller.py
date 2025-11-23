@@ -69,22 +69,22 @@ def create_schedule(payload: AskRequest,
 
     if location is None:
         chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-        chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.", role="ai"))
+        chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Vui lòng chọn một trong ba địa điểm hiện được hỗ trợ: Hà Nội, TP.HCM hoặc Đà Nẵng, để tôi có thể giúp bạn xây dựng lịch trình du lịch phù hợp.", role="ai"))
 
-        return AskResponse(message=payload.message, answer="Vui lòng cung cấp địa điểm để tôi có thể giúp bạn lập kế hoạch du lịch.")
+        return AskResponse(message=payload.message, answer="Vui lòng chọn một trong ba địa điểm hiện được hỗ trợ: Hà Nội, TP.HCM hoặc Đà Nẵng, để tôi có thể giúp bạn xây dựng lịch trình du lịch phù hợp.")
 
     if topic is None or "Plan" not in topic:
         chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
         chat_repository.save_message(session_id=session_id, message=ChatMessage(content="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.", role="ai"))
 
-        return AskResponse(message=payload.message, answer="Yêu cầu của bạn không liên quan đến việc lập kế hoạch du lịch. Vui lòng gửi yêu cầu khác.")
+        return AskResponse(message=payload.message, answer="Có vẻ như yêu cầu của bạn chưa liên quan đến việc lập kế hoạch du lịch. Bạn vui lòng gửi lại yêu cầu khác để tôi có thể hỗ trợ chính xác hơn nhé!")
     
     agent_service = AgentService(chat_repository=chat_repository, retriever=parent_document_retriever, pinecone_reranker=pinecone_reranker, user_id=user_id)
     try:
         response = agent_service.run_agent(question=standalone_question, session_id=session_id)
     except Exception as e:
         print(f"Error in create_schedule: {e}")
-        response = f"Tôi gặp lỗi trong khi tạo kế hoạch du lịch cho bạn, hãy thử lại sau."
+        response = f"Xin lỗi bạn, quá trình tạo kế hoạch du lịch vừa gặp phải lỗi không mong muốn. Có thể hệ thống đang gặp sự cố tạm thời. Bạn vui lòng thử lại sau để tôi có thể tiếp tục hỗ trợ bạn một cách chính xác hơn nhé!"
 
     return AskResponse(message=payload.message, answer=response)
 

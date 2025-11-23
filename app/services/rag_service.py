@@ -47,7 +47,7 @@ class RAGService:
                     * When answering a follow-up, **AVOID REPEATING** information already present in the 'Conversation History'. Prioritize NEW information found in the 'Context'.
                 7.  **Handling **Completely** Missing Information (The "I don't know" rule):**
                 * This rule ONLY applies if the 'Context' is **completely empty** OR **contains no relevant information AT ALL** to the 'Question'.
-                * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Do not add any other explanation.
+                * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Tôi hiện chưa thể đưa ra câu trả lời chính xác vì dữ liệu liên quan đến yêu cầu của bạn chưa đầy đủ. Bạn hãy cung cấp thêm thông tin (như nguồn dữ liệu, nội dung cụ thể hoặc ví dụ minh hoạ) để tôi có thể hỗ trợ bạn hiệu quả hơn.". Do not add any other explanation.
                 8. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
                 9.  **Language:** You must always answer in Vietnamese.
                 10. **Formatting (Strict Markdown):** * The output **MUST** be in clean **Markdown** format. 
