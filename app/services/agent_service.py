@@ -125,10 +125,8 @@ class AgentService:
     def schedule_trip_wrapper(self, trip_details_str: str):
         print(f"\n--- Wrapping schedule_tool for user: {self.user_id} ---\n")
         try:
-            # 1. Parse JSON mà LLM cung cấp
             trip_details = json.loads(trip_details_str)
             
-            # 2. Tiêm user_id (đã lưu trong self)
             trip_details["user_id"] = self.user_id
 
             generated_trip_id = ObjectId()
@@ -142,3 +140,5 @@ class AgentService:
             return f"Lỗi: JSON không hợp lệ. {e}"
         except Exception as e:
             return f"Lỗi khi lưu lịch trình: {e}"
+    
+    
