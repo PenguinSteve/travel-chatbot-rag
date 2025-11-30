@@ -105,9 +105,12 @@ class AgentService:
             
             if isinstance(decoded_answer, dict):
                 ai_message_for_history = decoded_answer.get('message', raw_output)
+                ai_data = decoded_answer.get('data', None)
+                trip_id = ai_data.get('trip_id', None) if ai_data else None
             else:
                 ai_message_for_history = raw_output
                 decoded_answer = raw_output
+                trip_id = None
 
         except (json.JSONDecodeError, TypeError):
             ai_message_for_history = raw_output  # Dùng chuỗi thô (bị cắt) để lưu
@@ -115,7 +118,7 @@ class AgentService:
 
 
         self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
-        agent_result = self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai"))
+        agent_result = self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai", trip_id=ObjectId(trip_id) if trip_id else None))
     
         return {"answer": decoded_answer, "timestamp": agent_result.timestamp}
     

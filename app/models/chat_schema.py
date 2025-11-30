@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Literal
+from typing import Any, List, Literal
 from pydantic import BaseModel, Field
 
 # Một tin nhắn trong cuộc hội thoại
@@ -7,6 +7,7 @@ class ChatMessage(BaseModel):
     role: Literal["human", "ai"]
     content: str
     timestamp: datetime = Field(default_factory=datetime.now)
+    trip_id: Any = None
 
 # Một phiên hội thoại hoàn chỉnh
 class ChatSession(BaseModel):

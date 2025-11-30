@@ -16,6 +16,7 @@ class ChatRepository:
 
 
     def save_message(self, session_id: str, message: ChatMessage):
+
         self.collection.update_one(
             {"session_id": session_id, "user_id": self.user_id},
             {
