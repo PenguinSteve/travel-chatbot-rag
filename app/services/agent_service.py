@@ -78,13 +78,12 @@ class AgentService:
 
         match = re.search(r"```json\s*(\{.*\})\s*```", raw_output, re.DOTALL)
 
-        # Ưu tiên 1: Dùng regex để tìm khối JSON trong markdown ```json ... ```
+        # Parse JSON từ raw_output bằng Regex (Markdown)
         if match:
-            # Nếu tìm thấy, lấy nội dung JSON từ group 1
             json_string_to_parse = match.group(1)
             print(f"\n--- Đã trích xuất JSON bằng Regex (Markdown) ---\n")
         else:
-            # Ưu tiên 2: Dùng find/rfind làm phương án dự phòng (cho JSON sạch)
+            # Nếu không tìm thấy bằng Regex, thử dùng find/rfind
             try:
                 start_index = raw_output.find('{')
                 end_index = raw_output.rfind('}')
@@ -113,7 +112,8 @@ class AgentService:
                 trip_id = None
 
         except (json.JSONDecodeError, TypeError):
-            ai_message_for_history = raw_output  # Dùng chuỗi thô (bị cắt) để lưu
+            ai_message_for_history = raw_output  # Lưu toàn bộ raw_output nếu không phải JSON hợp lệ
+            trip_id = None
             decoded_answer = raw_output
 
 
