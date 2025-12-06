@@ -336,7 +336,7 @@ class RAGService:
                 relevance_score = doc.metadata.get('relevance_score')
 
                 if relevance_score is not None and relevance_score < 0.3:
-                    print(f"\nOriginal Index {index}: Removing low-relevance document (score: {relevance_score}):\n {doc.page_content[:200]}...\n")
+                    print(f"\nOriginal Index {index}: Removing low-relevance document (score: {relevance_score}):\n {doc.page_content[:500]}...\n")
                     continue 
 
                 print(f"Context number {index} (Original {index}):\n {doc.page_content}")
@@ -346,7 +346,7 @@ class RAGService:
 
             print("\n---------------------End of Context Documents---------------------\n")
 
-            return context_docs
+            return valid_docs
 
         except Exception as e:
             raise RuntimeError(f"Document retrieval error: {e}")

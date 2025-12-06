@@ -56,7 +56,7 @@ async def life_span(app: FastAPI):
         # app.state.reranker_service = RerankerService()
 
         # Initialize pinecone reranker
-        app.state.pinecone_reranker = PineconeRerank(pinecone_api_key=settings.PINECONE_API_KEY_RERANKER, top_n=5)
+        app.state.pinecone_reranker = PineconeRerank(pinecone_api_key=settings.PINECONE_API_KEY_RERANKER, top_n=3)
         print('\n---------------------Initialized PineconeRerank---------------------\n')
 
         # Initialize redis cache

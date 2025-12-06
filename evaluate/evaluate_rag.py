@@ -3,13 +3,15 @@ from typing import List, Dict, Any
 from app.config.settings import settings
 from app.config.vector_database_pinecone import PineconeConfig
 from app.services.rag_service import RAGService
-from app.core.llm import llm_rag, llm_evaluate_faithfulness, llm_evaluate_relevance, llm_evaluate_precision, llm_evaluate_recall
+from app.core.llm import llm_rag
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_community.storage import MongoDBStore
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeRerank
+from bert_score import score
+import re
 
 class RAGEvaluation:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
@@ -27,50 +29,72 @@ class RAGEvaluation:
             db_name=settings.MONGO_DB_NAME,
             collection_name=settings.MONGO_STORE_COLLECTION_NAME
         )
-        self.llm_rag_eval_faithfulness = llm_evaluate_faithfulness()
-        self.llm_rag_eval_relevance = llm_evaluate_relevance()
-        self.llm_rag_eval_precision = llm_evaluate_precision()
-        self.llm_rag_eval_recall = llm_evaluate_recall()
         self.parent_document_retriever = ParentDocumentRetriever(
             docstore=self.docstore,
             child_splitter=self.child_splitter,
             vectorstore=vector_store,
             search_kwargs={"k":15, "filter":{}}
         )
-        self.pinecone_reranker = PineconeRerank(top_n=5, pinecone_api_key=settings.PINECONE_API_KEY_RERANKER)
+        self.pinecone_reranker = PineconeRerank(top_n=3, pinecone_api_key=settings.PINECONE_API_KEY_RERANKER)
 
     # Implement RAG response generation for evaluation
     def generate_response(self, retriever, question: str, topics, locations) -> str:
         llm = llm_rag()
 
         system = """### Role and Goal
-            You are an AI assistant specializing in tourism. Your persona is friendly, helpful, and **extremely accurate**.
-            Your task is to answer user questions, but you operate under one ABSOLUTE constraint: You MUST ONLY use the information provided to you.
+                You are an AI assistant specializing in tourism. Your persona is friendly, helpful, **detailed** and **extremely accurate**.
+                Your task is to answer user questions using a Hybrid approach: Prioritize the provided 'Context', but supplement with your own knowledge when specific details are missing.
+                Your goal is to provide the **most comprehensive answer possible**.
 
-            ### The Golden Rules (MOST IMPORTANT)
-            1.  **Strict Faithfulness:** Your answer MUST be **ENTIRELY** derived from the provided 'Context'.
-            2.  **No External Knowledge:** You are STRICTLY PROHIBITED from using any external knowledge (your pre-trained knowledge) to answer. If the information is not in the 'Context', you CANNOT say it.
-            3.  **Natural Phrasing (No Meta-Talk):**
-            * You must sound like a natural, human expert. 
-            * **DO NOT** talk about yourself as an AI or mention your data sources. 
-            * **AVOID ALL** phrases like: "in the documents I received," "based on the context," "in the provided information," "trong các tài liệu," "dựa trên ngữ cảnh," or "thông tin tôi nhận được."
-            * Just state the information directly.
-            4.  **Handling **Partial** Information (Best-Effort Rule):**
-            * Your main goal is to be helpful.
-            * If the user asks for a specific thing (e.g., "top 50 dishes", "Places to stay in somewhere near somewhere", "Places to visit near somewhere"), but the 'Context' provides **fewer items** or **items in context which is not near by mentioned places**, you **MUST** suggest **some the relevant items you found in the 'Context'**.
-            * If this is a follow-up question (e.g., user asks for 70 after you just gave 50), simply state naturally that you don't have additional items.
-            * **Example of a good response (natural):** "Hiện tại tôi chỉ có danh sách 50 món ăn này thôi." or "Danh sách của tôi có 50 món, tôi không tìm thấy món nào khác."
-            * **Example of a bad response (robot):** "Trong tài liệu tôi chỉ tìm thấy 50 món."
-            5.  **Handling **Completely** Missing Information (The "I don't know" rule):**
-            * This rule ONLY applies if the 'Context' is **completely empty** OR **contains no relevant information AT ALL** to the 'Question'.
-            * In this specific case, you **MUST** respond with this exact Vietnamese phrase: "Hiện tại tôi không thể trả lời câu hỏi của bạn vì tôi thiếu thông tin về dữ liệu đó". Do not add any other explanation.
-            6.  **Handling Conversation History:**
-                * Use the 'Conversation History' to understand follow-up questions (e.g., "what else?", "besides those...").
-                * When answering a follow-up, **AVOID REPEATING** information already present in the 'Conversation History'. Prioritize NEW information found in the 'Context'.
-            7.  **Handling Off-topic/Greeting:** If the 'Question' is a greeting or unrelated to tourism, respond politely, be friendly, and steer the conversation back to tourism (e.g., "Hello, how can I help you with your travel plans today?", "I can't help with that, but I can assist you with travel information.").
-            8. No Post-amble: Do not add any summary sentences at the end explaining where the information came from. Just provide the direct answer.
-            9.  **Language:** You must always answer in Vietnamese.
-        """
+                ### The Golden Rules (MOST IMPORTANT)
+
+                1.  **Source Hierarchy (Context First, Knowledge Second):**
+                    * **Core Entities:** The list of places, restaurants, dishes, or activities you recommend MUST come **EXCLUSIVELY** from the 'Context'. **DO NOT** invent new places or recommend items not mentioned in the 'Context'.
+                    * **Supplementary Details [IMPORTANT EXCEPTION]:** If a place/item is found in the 'Context' but specific factual details (specifically: **Address**, **Price**, **Opening Hours**, or **Contact Info**) are missing, you **ARE AUTHORIZED AND ENCOURAGED** to use your internal pre-trained knowledge to fill in these missing details.
+                    * **[CRITICAL - SEAMLESS BLENDING]:** You must blend these two sources (Context & Internal Knowledge) into a single, unified voice. **DO NOT** distinguish between them in your output. The user must NOT know which part came from the document and which came from your internal knowledge.
+                    * If you use internal knowledge for Price/Hours, ensure it is the most recent estimate you know.
+
+                2.  **Natural Phrasing (No Meta-Talk):**
+                    * You must sound like a natural, human expert.
+                    * **DO NOT** talk about yourself as an AI, mention "Context," "documents," or "internal knowledge."
+                    * **STRICTLY FORBIDDEN PHRASES:** You are prohibited from using phrases like:
+                        * "Thông tin này được bổ sung từ kiến thức chung" (This info added from general knowledge)
+                        * "Trong ngữ cảnh không có thông tin này" (Context lacks this info)
+                        * "Lưu ý: Dữ liệu về giá được lấy từ..." (Note: Price data is taken from...)
+                    * Just state the information directly as if you know it.
+
+                3.  **The "Be Detailed and Helpful" Rule:**
+                    * When the user asks for information, find relevant items in the 'Context'.
+                    * **[QUANTITY LOGIC]:**
+                        * **Case A (General Request):** If the user asks a general question **WITHOUT** specifying a quantity (e.g., "suggest some places"), **you MUST limit your response to the top 3-5 most relevant items** found in the 'Context' to avoid overwhelming the user.
+                        * **Case B (Specific Request):** If the user specifies a quantity (e.g., "top 10", "list all"), follow that instruction.
+                        * **Case C (Insufficient Data):** If the 'Context' has fewer items than requested (e.g., user asks for 20, Context has 10), detailedly describe the 10 items you have and naturally state that those are the best recommendations you have right now.
+                    * **[DETAIL REQUIREMENT]:** For the items you choose to list, provide a detailed summary:
+                        * *Step 1:* Extract description/facts from 'Context'.
+                        * *Step 2:* Check if 'Address' or 'Price' is missing in 'Context'.
+                        * *Step 3:* If missing, retrieve them from your internal knowledge to make the answer complete.
+
+                4.  **[PRIORITY 1] Handling Off-topic, Greeting, or Vague Questions:**
+                    * Check this **FIRST**.
+                    * If Greeting/Off-topic: Respond politely and steer back to tourism.
+                    * If Vague (e.g., "Give me info"): Respond with: "Tôi có thể giúp gì cho bạn về thông tin du lịch?".
+
+                5.  **Handling Conversation History:**
+                    * Use 'Conversation History' to understand follow-ups.
+                    * Avoid repeating information unless asked.
+
+                6.  **Handling **Completely** Missing Topics:**
+                    * This rule applies ONLY if the 'Context' contains **NO relevant places/items** related to the user's question.
+                    * In this specific case (Context is empty regarding the topic), respond with: "Tôi hiện chưa thể đưa ra câu trả lời chính xác vì dữ liệu liên quan đến yêu cầu của bạn chưa đầy đủ. Bạn hãy cung cấp thêm thông tin (như nguồn dữ liệu, nội dung cụ thể hoặc ví dụ minh hoạ) để tôi có thể hỗ trợ bạn hiệu quả hơn."
+
+                7.  **Formatting & Language:**
+                    * **Language:** Always answer in **Vietnamese**.
+                    * **No Post-amble:** Do not add any summary sentences at the end explaining where the information came from. **ABSOLUTELY NO** "Lưu ý" (Note) section about data sources.
+                    * **Formatting:** Use clean **Markdown**.
+                        * Use **Bold** (`**text**`) for names/highlights.
+                        * Use **Bullet points** (`*` or `-`) for lists.
+                        * **STRICTLY PROHIBITED:** No HTML tags (`<br>`, `<div>`). Remove or replace them if found in Context.
+                """
         
         prompt = ChatPromptTemplate.from_messages([
             ("system", system),
@@ -110,139 +134,29 @@ class RAGEvaluation:
         }
 
         response = rag_chain.invoke(prompt_input)
-        # response = ""
 
         return response, context_docs
-    
-    # --------------- Faithfulness Evaluation --------------- #
-    # đánh giá mức độ trung thực của câu trả lời dựa trên ngữ cảnh được cung cấp
-    def evaluate_faithfulness(self, question: str, answer: str, context: str):
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert evaluator assessing factual accuracy between a model answer and its context."),
-            ("user", """Evaluate the FAITHFULNESS of the following answer.
 
-                Context:
-                {context}
+    def BERTScore(cands: List[str], refs: List[str], num_layers: int = 10, model_type: str = "microsoft/mdeberta-v3-base") -> List[float]:
 
-                Answer:
-                {answer}
-
-                Question:
-                {question}
-
-                Score between 0.0 (completely unfaithful, fabricated) and 1.0 (fully faithful, strictly supported by context).
-                Explain briefly why.
-
-                Output STRICTLY in JSON:
-                {{"score": float, "explanation": "text"}}
-            """)
-        ])
-
-        evaluate_faithfulness_chain = (prompt | self.llm_rag_eval_faithfulness | JsonOutputParser())
-        return evaluate_faithfulness_chain.invoke({
-            "context": context,
-            "question": question,
-            "answer": answer
-        })
-
-    # --------------- Answer Relevance Evaluation --------------- #
-    # đo lường mức độ liên quan của câu trả lời với câu hỏi
-    def evaluate_answer_relevance(self, question: str, answer: str):
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a precise evaluator of relevance between question and answer."),
-            ("user", """Evaluate ANSWER RELEVANCE for the given pair:
-
-                Question:
-                {question}
-
-                Answer:
-                {answer}
-
-                Score between 0.0 (irrelevant) and 1.0 (fully relevant and focused).
-                Briefly justify.
-
-                Output STRICTLY in JSON:
-                {{"score": float, "explanation": "text"}}
-            """)
-        ])
-
-        evaluate_relevance_chain = (prompt | self.llm_rag_eval_relevance | JsonOutputParser())
-        return evaluate_relevance_chain.invoke({
-            "question": question,
-            "answer": answer
-        })
-    
-
-    # --------------- Context Precision Evaluation --------------- #
-    # đo lường mức độ chính xác của các đoạn ngữ cảnh (contexts) được truy xuất
-    def evaluate_context_precision(self, question: str, context: str, answer: str):
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are evaluating context precision — whether the retrieved context precisely supports the answer."),
-            ("user", """Evaluate CONTEXT PRECISION.
-
-                Question:
-                {question}
-
-                Answer:
-                {answer}
-
-                Context:
-                {context}
-
-                Score between 0.0 (context mostly irrelevant or noisy) and 1.0 (context concise and directly relevant).
-                Explain in short.
-
-                Output STRICTLY in JSON:
-                {{"score": float, "explanation": "text"}}
-            """)
-        ])
-
-        evaluate_precision_chain = (prompt | self.llm_rag_eval_precision | JsonOutputParser())
-        return evaluate_precision_chain.invoke({
-            "context": context,
-            "question": question,
-            "answer": answer
-        })
-    
-    # --------------- Context Recall Evaluation --------------- #
-    # đo lường mức độ đầy đủ của các đoạn ngữ cảnh (contexts) được truy xuất
-    def evaluate_context_recall(self, question: str, context: str, ground_truth: str):
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are evaluating how much of the ground truth information is present in the context."),
-            ("user", """Evaluate CONTEXT RECALL.
-
-                Ground Truth:
-                {ground_truth}
-
-                Question:
-                {question}
-
-                Context:
-                {context}
-
-                Score between 0.0 (context misses most key facts) and 1.0 (context covers all key facts needed).
-                Give short justification.
-
-                Output STRICTLY in JSON:
-                {{"score": float, "explanation": "text"}}
-            """)
-        ])
-
-        evaluate_recall_chain = (prompt | self.llm_rag_eval_recall | JsonOutputParser())
-        return evaluate_recall_chain.invoke({
-            "context": context,
-            "question": question,
-            "ground_truth": ground_truth
-        })
-
+        P, R, F1 = score(cands,
+                        refs,
+                        model_type=model_type,
+                        lang="vi",
+                        num_layers=num_layers,
+                        batch_size=4,
+                        verbose=True,
+                        rescale_with_baseline=True)
+        return P.tolist(), R.tolist(), F1.tolist()
 
 def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.xlsx"):
     print("Loading evaluation dataset from:", input_path)
     df = pd.read_excel(input_path).fillna("")
 
-    df = df[53:] # Chạy thử từ dòng 15 đến hết
+    df = df[99:]  # Process only one row for testing
     
     print(df.iloc[0])
+    print(df.head())
 
     print(f"Evaluation dataset loaded. Total questions: {len(df)}")
 
@@ -287,47 +201,11 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
 
             context_combined = "\n\n".join(formatted_contexts)
 
-            # Evaluate metrics faithfulness
-            faithfulness_result = RAGEvaluation_instance.evaluate_faithfulness(
-                question, answer, context_combined
-            )
-            print(f"\nEvaluated row {index + 1}: Faithfulness score = {faithfulness_result.get('score') or 'N/A'}")
-            print(f"Faithfulness explanation: {faithfulness_result.get('explanation') or ''}")
-
-            # Evaluate metrics relevance
-            relevance_result = RAGEvaluation_instance.evaluate_answer_relevance(
-                question, answer
-            )
-            print(f"\nEvaluated row {index + 1}: Relevance score = {relevance_result.get('score') or 'N/A'}")
-            print(f"Relevance explanation: {relevance_result.get('explanation') or ''}")
-
-            # Evaluate metrics context precision and recall
-            precision_result = RAGEvaluation_instance.evaluate_context_precision(
-                question, context_combined, answer
-            )
-            print(f"\nEvaluated row {index + 1}: Context Precision score = {precision_result.get('score') or 'N/A'}")
-            print(f"Context Precision explanation: {precision_result.get('explanation') or ''}")
-
-            # Evaluate context recall
-            recall_result = RAGEvaluation_instance.evaluate_context_recall(
-                question, context_combined, groundTruth
-            )
-            print(f"\nEvaluated row {index + 1}: Context Recall score = {recall_result.get('score') or 'N/A'}")
-            print(f"Context Recall explanation: {recall_result.get('explanation') or ''}")
-
             # Store results
             results.append({
                 "Question": question,
                 "GroundTruth": groundTruth,
                 "Answer": answer,
-                "Faithfulness_Score": faithfulness_result.get("score") or "N/A",
-                "Faithfulness_Explanation": faithfulness_result.get("explanation") or "",
-                "Relevance_Score": relevance_result.get("score") or "N/A",
-                "Relevance_Explanation": relevance_result.get("explanation") or "",
-                "Context_Precision_Score": precision_result.get("score") or "N/A",
-                "Context_Precision_Explanation": precision_result.get("explanation") or "",
-                "Context_Recall_Score": recall_result.get("score") or "N/A",
-                "Context_Recall_Explanation": recall_result.get("explanation") or "",
                 "Context_Documents": context_combined
             })
     except Exception as e:
@@ -340,9 +218,131 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
     print(f"\nEvaluation finished. Results saved to {output_path}")
     return df
 
+def clean_markdown(text: str) -> str:
+    if not isinstance(text, str): return str(text)
+    
+    # Loại bỏ hàng phân cách bảng (Ví dụ: |---|---| hoặc | :--- | :--- |)
+    # Regex này tìm các dòng chỉ chứa dấu gạch đứng, gạch ngang, dấu hai chấm và khoảng trắng
+    text = re.sub(r'\|[\s\-:|]+\|', ' ', text)
+    
+    # Loại bỏ ký tự tạo cột '|' -> thay bằng khoảng trắng để các từ không dính vào nhau
+    # Ví dụ: "|Khách sạn|" -> " Khách sạn "
+    text = text.replace('|', ' ')
+    
+    # Loại bỏ in đậm/nghiêng (Logic cũ)
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      
+    text = re.sub(r'__(.*?)__', r'\1', text)      
+    
+    # Loại bỏ gạch đầu dòng (Logic cũ - Cần chạy khi còn Newline)
+    text = re.sub(r'^\s*[-*•]\s+', '', text, flags=re.MULTILINE)
+    
+    # Loại bỏ tiêu đề (Logic cũ)
+    text = re.sub(r'#+\s+', '', text)
+    
+    # Loại bỏ xuống dòng bằng khoảng trắng (Logic cũ)
+    text = text.replace('\n', ' ')
+    
+    # Chuẩn hóa dấu câu (Logic cũ - Rất quan trọng để tiết kiệm token)
+    
+    # Xóa khoảng trắng trước dấu câu: " ." -> ".", " ," -> ","
+    text = re.sub(r'\s+([.,;?!])', r'\1', text)
+    
+    # Gộp nhiều dấu chấm thành 1: ".." -> ".", ". ." -> "."
+    text = re.sub(r'\.{2,}', '.', text)      # .. -> .
+    text = re.sub(r'\.\s+\.', '.', text)     # . . -> .
+    
+    # Sửa lỗi dấu hai chấm kèm chấm: ":." -> ":"
+    text = re.sub(r':\.', ':', text)
+    
+    # Loại bỏ khoảng trắng thừa (Logic cũ)
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
+
+# Example Cosine Similarity Matrix
+def visualize_matrix(candidate, reference, num_layers=10, model_type="microsoft/mdeberta-v3-base"):
+    from bert_score import plot_example
+    import matplotlib.pyplot as plt
+
+    if len(candidate) > 200:
+        candidate = candidate[:30] + "..."
+    if len(reference) > 200:
+        reference = reference[:30] + "..."
+
+    plot_example(candidate,
+                reference, 
+                model_type=model_type, 
+                lang="vi",
+                num_layers=num_layers)
+    
+    plt.title(f"BERTScore Cosine Similarity Matrix with layer {num_layers}")
+    plt.show()
+
+    plot_example(candidate,
+                reference, 
+                model_type=model_type, 
+                lang="vi",
+                num_layers=num_layers+1)
+    plt.title(f"BERTScore Cosine Similarity Matrix with layer {num_layers+1}")
+    plt.show()
+
+    plot_example(candidate,
+                reference, 
+                model_type=model_type, 
+                lang="vi",
+                num_layers=num_layers+2)
+    plt.title("BERTScore Cosine Similarity Matrix with layer 12")
+    plt.show()
+
+def truncated_text(text, max_length=300):
+    words = text.split()
+
+    if len(words) <= max_length:
+        return text
+    
+    truncated = ' '.join(words[:max_length]) + '...'
+    return truncated
+    
+
+def calculate_BERTScore(input_path: str, output_path: str = "rag_evaluation_results_with_BERTScore.xlsx"):
+    print("Loading evaluation results from:", input_path)
+    df = pd.read_excel(input_path).fillna("")
+
+    # df = df[0:1] 
+
+    print(f"Evaluation results loaded. Total entries: {len(df)}")
+
+    if 'Answer' not in df.columns or 'GroundTruth' not in df.columns:
+        print("Lỗi: File Excel thiếu cột 'Answer' hoặc 'GroundTruth'.")
+        return
+
+    cands = df["Answer"].astype(str).tolist()
+    refs = df["GroundTruth"].astype(str).tolist()
+
+    cands = [clean_markdown(text) for text in cands]
+    refs = [clean_markdown(text) for text in refs]
+
+    # visualize_matrix(cands, refs, num_layers=10, model_type="uitnlp/visobert")
+
+    print("Calculating BERTScore...")
+    P, R, F1 = RAGEvaluation.BERTScore(cands, refs, num_layers=11, model_type="microsoft/mdeberta-v3-base")
+
+    df["BERTScore_Precision"] = P
+    df["BERTScore_Recall"] = R
+    df["BERTScore_F1"] = F1
+
+    df.to_excel(output_path, index=False)
+    print(f"\nBERTScore calculation finished. Results saved to {output_path}")
+    return df
+
+
 # --- --------------- Example usage --------------- ---
 if __name__ == "__main__":
     
-    input_path = "./evaluate/data/data_evaluate_Hanoi.xlsx"
+    input_path = "./evaluate/data/data_evaluate_TPHCM.xlsx"
 
-    evaluate(input_path, output_path="rag_evaluation_results_Hanoi.xlsx")
+    # evaluate(input_path, output_path="rag_evaluation_results_TPHCM_1.xlsx")
+
+    calculate_BERTScore(input_path="./evaluate/result/rag_evaluation_results_DaNang.xlsx",
+                        output_path="model_microsoft-mdeberta-v3-base_layer11_rag_evaluation_results_DaNang_with_BERTScore.xlsx")
