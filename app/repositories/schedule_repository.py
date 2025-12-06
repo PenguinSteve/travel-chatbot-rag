@@ -26,6 +26,7 @@ class ScheduleRepository:
             "accommodation": schedule_item["accommodation"],
             "tips": schedule_item["tips"],
             "created_at": schedule_item.get("created_at", datetime.now()) ,
+            "is_schedule_completed": False
         })
 
 
