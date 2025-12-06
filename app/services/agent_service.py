@@ -78,7 +78,7 @@ class AgentService:
 
         match = re.search(r"```json\s*(\{.*\})\s*```", raw_output, re.DOTALL)
 
-        # Parse JSON từ raw_output bằng Regex (Markdown)
+            # Parse JSON từ raw_output bằng Regex (Markdown)
         if match:
             json_string_to_parse = match.group(1)
             print(f"\n--- Đã trích xuất JSON bằng Regex (Markdown) ---\n")
