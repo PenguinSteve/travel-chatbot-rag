@@ -12,6 +12,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeRerank
 from bert_score import score
 import re
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from tqdm import tqdm
+import numpy as np
 
 class RAGEvaluation:
     CONNECTION_STRING = f"mongodb+srv://{settings.MONGO_DB_NAME}:{settings.MONGO_DB_PASSWORD}@chat-box-tourism.ojhdj0o.mongodb.net/?retryWrites=true&w=majority&tls=true"
@@ -149,6 +153,7 @@ class RAGEvaluation:
                         rescale_with_baseline=True)
         return P.tolist(), R.tolist(), F1.tolist()
 
+# Hàm tạo answer và trích xuất context RAG cho từng câu hỏi trong tập đánh giá
 def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.xlsx"):
     print("Loading evaluation dataset from:", input_path)
     df = pd.read_excel(input_path).fillna("")
@@ -218,6 +223,8 @@ def evaluate(input_path: str, output_path: str = "rag_evaluation_results_DaNang.
     print(f"\nEvaluation finished. Results saved to {output_path}")
     return df
 
+### Hàm hỗ trợ đánh giá BERTScore
+# Hàm làm sạch định dạng Markdown trong văn bản
 def clean_markdown(text: str) -> str:
     if not isinstance(text, str): return str(text)
     
@@ -241,7 +248,7 @@ def clean_markdown(text: str) -> str:
     text = re.sub(r'#+\s+', '', text)
     
     # Loại bỏ xuống dòng bằng khoảng trắng (Logic cũ)
-    text = text.replace('\n', ' ')
+    text = text.replace('\n', '. ')
     
     # Chuẩn hóa dấu câu (Logic cũ - Rất quan trọng để tiết kiệm token)
     
@@ -336,7 +343,241 @@ def calculate_BERTScore(input_path: str, output_path: str = "rag_evaluation_resu
     print(f"\nBERTScore calculation finished. Results saved to {output_path}")
     return df
 
+### END OF BERTScore functions ###
 
+### CÁC HÀM HỖ TRỢ ĐÁNH GIÁ GROUNDEDNESS
+def split_sentences(text):
+    """Tách đoạn văn thành các câu đơn để kiểm tra từng ý."""
+    if not isinstance(text, str): return []
+    # Tách dựa trên dấu câu kết thúc (. ? !) và theo sau là khoảng trắng
+    sentences = re.split(r'(?<=[.?!])\s+', text)
+    return [s.strip() for s in sentences if len(s.strip()) > 5]
+
+### Hàm tạo sliding windows cho context dài
+def create_sliding_windows(text, window_size=350, overlap=50):
+    """
+    Chia Context dài thành các cửa sổ trượt (Sliding Windows) để xử lý Parent Document.
+    Đơn vị: Số từ (words).
+    """
+    if not isinstance(text, str): return [""]
+    words = text.split()
+    if len(words) <= window_size:
+        return [text]
+    
+    windows = []
+    for i in range(0, len(words), window_size - overlap):
+        chunk = " ".join(words[i : i + window_size])
+        windows.append(chunk)
+        if i + window_size >= len(words):
+            break
+    return windows
+
+### Hàm đánh giá Groundedness sử dụng NLI Cross-Encoder
+def calculate_Groundedness(input_path: str, output_path: str):
+    """
+    Tính điểm Groundedness sử dụng mô hình NLI (Cross-Encoder) và Sliding Window.
+    """
+    print(f"\n--- BẮT ĐẦU ĐÁNH GIÁ Groundedness ---")
+    
+    # 1. Load Model NLI
+    model_name = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+    print(f"Đang tải model NLI: {model_name}...")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Thiết bị chạy: {device}")
+    
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model.to(device)
+        model.eval()
+    except Exception as e:
+        print(f"Lỗi tải model: {e}")
+        return
+
+    # 2. Load Dữ liệu
+    print(f"Đọc dữ liệu từ: {input_path}")
+    df = pd.read_excel(input_path).fillna("")
+
+    # df = df[0:10]  # Giới hạn xử lý 10 dòng đầu cho test
+
+    # Kiểm tra cột Context. Trong code của bạn, cột này tên là 'Context_Documents'
+    context_col = 'Context_Documents'
+    if context_col not in df.columns:
+        # Fallback: Tìm các cột có chữ Context
+        cols = [c for c in df.columns if 'Context' in c]
+        if cols:
+            context_col = cols[0]
+            print(f"Không thấy 'Context_Documents', dùng cột thay thế: {context_col}")
+        else:
+            print("Lỗi: Không tìm thấy cột chứa Context.")
+            return
+
+    scores = []
+    details_list = []
+
+    SKIP_PATTERNS = [
+        # --- NHÓM 1: THÔNG TIN TIỆN ÍCH (Hybrid Knowledge) ---
+        # Giá tiền: Bắt các cụm "50.000 VND", "20k", "Miễn phí"
+        r'(?:giá|mức giá|chi phí).*?(?:tham khảo|vé|dịch vụ)?[:\s]*[\d.,]+.*?(?:vnđ|vnd|đ|k|usd)', 
+        r'\d{1,3}(?:[.,]\d{3})*\s*(?:vnđ|vnd|đ|k)', # Bắt số tiền đứng lẻ (50.000 VND)
+        r'(?:giá|vé).*?(?:miễn phí|tự do)',         # Bắt chữ "miễn phí"
+        
+        # Thời gian: Bắt giờ mở cửa (07:00 – 22:00)
+        r'(?:giờ|thời gian).*?(?:mở cửa|hoạt động)[:\s]*\d{1,2}[:h]',
+        r'\d{1,2}[:h]\d{2}\s*[–-]\s*\d{1,2}[:h]\d{2}', # Format 07:00 – 22:00
+
+        # Liên hệ & Địa chỉ (Thường Context có địa chỉ nhưng AI hay viết lại khác format -> Skip cho an toàn)
+        r'(?:liên hệ|sđt|hotline|điện thoại)[:\s]*0\d+',
+        r'địa chỉ[:\s].*', 
+
+        # --- NHÓM 2: VĂN PHONG SÁO RỖNG (Fluff / Hallucination cảm xúc) ---
+        # Câu kết bài xã giao
+        r'(?:chúc|hy vọng|mong).*?(?:bạn|du khách).*?(?:chuyến|trải nghiệm|vui vẻ|thú vị)',
+        r'(?:hãy|đừng quên).*?(?:đến|ghé|thử|mang theo)',
+        r'cảm ơn bạn đã quan tâm',
+        
+        # Các câu mô tả cảm giác chủ quan (thường gây lỗi NLI)
+        r'(?:mang lại|tạo nên|đem đến).*?(?:cảm giác|không gian|trải nghiệm).*?(?:tuyệt vời|lý tưởng|hoàn hảo|trọn vẹn)',
+        r'là (?:điểm đến|lựa chọn) (?:lý tưởng|hoàn hảo|tuyệt vời)',
+        r'thu hút (?:đông đảo)? du khách',
+        r'nổi tiếng với vẻ đẹp',
+        
+        # Câu dẫn dắt vô nghĩa
+        r'dưới đây là',
+        r'thông tin chi tiết',
+        r'một số gợi ý'
+    ]
+
+    def calculate_overlap(sent, context_text):
+        # Tách từ đơn giản, bỏ qua các từ quá ngắn (<2 ký tự)
+        sent_tokens = set([w.lower() for w in sent.split() if len(w) > 1])
+        ctx_tokens = set([w.lower() for w in context_text.split() if len(w) > 1])
+        
+        if len(sent_tokens) == 0: return 0.0
+        
+        intersection = sent_tokens.intersection(ctx_tokens)
+        return len(intersection) / len(sent_tokens)
+
+    print("Đang chấm điểm từng câu trả lời...")
+    for index, row in tqdm(df.iterrows(), total=len(df)):
+        answer = str(row['Answer'])
+        # Làm sạch context một chút trước khi xử lý (bỏ tên tài liệu, score nếu cần thiết)
+        full_context = str(row[context_col])
+        
+        # A. Tách câu trả lời thành các mệnh đề/câu đơn
+        overlap_context_ref = full_context.lower()
+
+        answer = clean_markdown(answer)
+        sentences = split_sentences(answer)
+        if not sentences:
+            scores.append(0.0)
+            details_list.append("No valid sentences")
+            continue
+
+        # B. Tạo cửa sổ trượt cho Context (Xử lý Context siêu dài từ Parent Document)
+        # Window size 300 từ ~ 450-500 tokens (an toàn cho mDeBERTa 512)
+        context_windows = create_sliding_windows(full_context, window_size=300, overlap=50)
+        
+        pass_count = 0
+        skipped_count = 0
+        row_details = []
+
+        # C. So khớp từng câu Answer với các cửa sổ Context
+        for sent in sentences:
+
+            # Filter các câu không cần đánh giá (Thông tin tiện ích, văn phong rỗng)
+            is_external_info = False
+            
+            # Kiểm tra câu có quá ngắn không (dưới 3 từ thường là rác do tách câu sai)
+            if len(sent.split()) < 3: 
+                is_external_info = True
+            
+            # Kiểm tra Regex
+            if not is_external_info:
+                for pattern in SKIP_PATTERNS:
+                    if re.search(pattern, sent, re.IGNORECASE):
+                        is_external_info = True
+                        break
+            
+            if is_external_info:
+                skipped_count += 1
+                row_details.append(f"SKIP: {sent[:40]}...")
+                continue
+
+            # Đánh giá câu này với tất cả cửa sổ Context
+            max_entailment = -1.0
+            
+            # Quét qua các cửa sổ để tìm bằng chứng tốt nhất (Max Score Strategy)
+            for window in context_windows:
+                # Input format cho Cross-Encoder: [CLS] Context [SEP] Sentence [SEP]
+                inputs = tokenizer(
+                    window, sent, 
+                    truncation=True, return_tensors="pt", max_length=512
+                )
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+
+                with torch.no_grad():
+                    output = model(**inputs)
+                    probs = torch.softmax(output.logits, dim=1).tolist()[0]
+                
+                # Model MoritzLaurer output: 0: Entailment, 1: Neutral, 2: Contradiction
+                entailment_score = probs[0]
+                
+                if entailment_score > max_entailment:
+                    max_entailment = entailment_score
+                
+                # Tối ưu: Nếu tìm thấy bằng chứng chắc chắn (>0.9), dừng tìm kiếm cho câu này
+                if max_entailment > 0.9: 
+                    break
+            
+            # Tính điểm Overlap từ vựng giữa câu và toàn bộ Context
+            overlap_score = calculate_overlap(sent, overlap_context_ref)
+
+            is_pass = False
+            note = ""
+
+            # Đánh giá câu này
+            # Ngưỡng 0.35 là ngưỡng phù hợp để xác định câu bị paraphrase
+            if max_entailment > 0.35: 
+                is_pass = True
+                note = f"PASS(NLI={max_entailment:.2f}), sent: {sent}"
+            elif overlap_score > 0.5:
+                is_pass = True
+                note = f"PASS(Overlap={overlap_score:.2f}), sent: {sent}"
+            else:
+                is_pass = False
+                note = f"FAIL(NLI={max_entailment:.2f}, Ov={overlap_score:.2f})"
+
+            if is_pass:
+                    pass_count += 1
+                    row_details.append(f"{note}")
+            else:
+                row_details.append(f"{note}: {sent}...")
+
+        effective_total = len(sentences) - skipped_count
+        
+        if effective_total == 0:
+            final_row_score = 1.0
+            row_details.append("(All sentences skipped)")
+        else:
+            final_row_score = pass_count / effective_total
+
+        # D. Tính điểm trung bình cho dòng này (Tỷ lệ câu đúng)
+        scores.append(final_row_score)
+        details_list.append("; ".join(row_details))
+
+    # 3. Lưu kết quả
+    df['Groundedness_Score'] = scores
+    df['Groundedness_Details'] = details_list
+    
+    df.to_excel(output_path, index=False)
+    
+    avg_score = sum(scores)/len(scores) if scores else 0
+    print(f"\n--- HOÀN TẤT GROUNDEDNESS ---")
+    print(f"Điểm Groundedness trung bình: {avg_score:.4f}")
+    print(f"Kết quả lưu tại: {output_path}")
+
+### MAIN FUNCTION ###
 # --- --------------- Example usage --------------- ---
 if __name__ == "__main__":
     
@@ -344,5 +585,10 @@ if __name__ == "__main__":
 
     # evaluate(input_path, output_path="rag_evaluation_results_TPHCM_1.xlsx")
 
-    calculate_BERTScore(input_path="./evaluate/result/rag_evaluation_results_DaNang.xlsx",
-                        output_path="model_microsoft-mdeberta-v3-base_layer11_rag_evaluation_results_DaNang_with_BERTScore.xlsx")
+    # calculate_BERTScore(input_path="./evaluate/result/rag_evaluation_results_DaNang.xlsx",
+    #                     output_path="model_microsoft-mdeberta-v3-base_layer11_rag_evaluation_results_DaNang_with_BERTScore.xlsx")
+
+    calculate_Groundedness(
+        input_path="./evaluate/result/rag_evaluation_results_Hanoi.xlsx",
+        output_path="rag_evaluation_results_Hanoi_with_Groundedness_test_1.xlsx"
+    )
