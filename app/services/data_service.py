@@ -15,7 +15,8 @@ class DataService:
 
     @staticmethod
     def ingest_excel(
-        file: UploadFile, 
+        file: UploadFile,
+        file_id: str,
         retriever: ParentDocumentRetriever
     ) -> List[str]:
         try:
@@ -38,7 +39,7 @@ class DataService:
 
         documents = []
 
-        original_id = str(file.filename) + "_" + str(uuid.uuid4())
+        file_id = str(file_id)
 
         df = df[DataService.REQUIRED_EXCEL_COLUMNS]
 
@@ -52,19 +53,20 @@ class DataService:
             doc = Document(page_content=content, metadata=metadata)
             documents.append(doc)
 
-            doc.metadata["original_id"] = original_id
+            doc.metadata["file_id"] = file_id
 
         if documents:
             print(f"\n---------------------Ingesting {len(documents)} documents from uploaded Excel file---------------------\n")
             retriever.add_documents(documents)
-            return original_id
+            return file_id
         
         print(f"\n---------------------Ingested {len(documents)} documents from uploaded Excel file successfully---------------------\n")
         return []
     
     @staticmethod
     def ingest_unstructured_file(
-        file: UploadFile, 
+        file: UploadFile,
+        file_id: str,
         metadata: dict, 
         retriever: ParentDocumentRetriever
     ) -> List[str]:
@@ -76,7 +78,7 @@ class DataService:
         try:
             documents = []
 
-            original_id = str(file.filename) + "_" + str(uuid.uuid4())
+            file_id = str(file_id)
 
             # 2. Chọn Loader phù hợp theo đuôi file
             if file.filename.lower().endswith(".pdf"):
@@ -100,13 +102,13 @@ class DataService:
             # Gán metadata từ request
             final_metadata = metadata.copy()
 
-            final_metadata["original_id"] = original_id
+            final_metadata["file_id"] = file_id
             
             new_doc = Document(page_content=full_content, metadata=final_metadata)
 
             # 4. Thêm vào Retriever
             retriever.add_documents([new_doc])
-            return original_id
+            return file_id
 
         finally:
             # Dọn dẹp file tạm
@@ -115,17 +117,17 @@ class DataService:
 
     @staticmethod
     def delete_document(
-        original_id: str, 
+        file_id: str, 
         retriever: ParentDocumentRetriever
     ):
-        print(f"--- Deleting Document ID: {original_id} ---")
+        print(f"--- Deleting Document ID: {file_id} ---")
         
         # Xóa trong MongoDB (Docstore)
         try:
             if hasattr(retriever.docstore, "collection"):
-                # Query: Xóa tất cả doc mà metadata.original_id == original_id
+                # Query: Xóa tất cả doc mà metadata.file_id == file_id
                 result = retriever.docstore.collection.delete_many(
-                    {"value.metadata.original_id": original_id}
+                    {"value.metadata.file_id": file_id}
                 )
                 print(retriever.docstore.collection)
                 print(f"Deleted {result.deleted_count} parent docs from MongoDB")
@@ -134,8 +136,8 @@ class DataService:
 
         # Xóa trong Pinecone (Vectorstore)
         try:
-            # Dùng filter original_id để xóa tất cả chunks con
-            retriever.vectorstore.delete(filter={"original_id": original_id})
+            # Dùng filter file_id để xóa tất cả chunks con
+            retriever.vectorstore.delete(filter={"file_id": file_id})
             print("Successfully deleted from Pinecone Vectorstore")
             return True
         except Exception as e:

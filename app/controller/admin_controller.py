@@ -12,6 +12,7 @@ router = APIRouter(prefix="/admin/knowledge")
 @router.post("/import-excel")
 async def import_excel(
     file: UploadFile = File(...),
+    file_id: str = Form(...),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
     user_payload: dict = Depends(get_current_user_payload_strict),
 ):
@@ -22,7 +23,7 @@ async def import_excel(
         raise HTTPException(status_code=400, detail="File must be Excel format")
         
     try:
-        DataService.ingest_excel(file, retriever)
+        DataService.ingest_excel(file, file_id, retriever)
         return {
             "status": "success",
             "message": f"Successfully imported documents from Excel file."
@@ -35,6 +36,7 @@ async def import_excel(
 @router.post("/import-file")
 async def import_file(
     file: UploadFile = File(...),
+    file_id: str = Form(...),
     topic: str = Form(...),
     location: str = Form(...),
     name: Optional[str] = Form(None),
@@ -54,7 +56,7 @@ async def import_file(
     }
 
     try:
-        DataService.ingest_unstructured_file(file, metadata, retriever)
+        DataService.ingest_unstructured_file(file, file_id, metadata, retriever)
         return {
             "status": "success",
             "message": f"File '{file.filename}' imported successfully."
@@ -66,9 +68,9 @@ async def import_file(
 
 
 # API Delete
-@router.delete("/{doc_id}")
+@router.delete("/{file_id}")
 async def delete_knowledge(
-    doc_id: str = Path(..., description="MongoDB _id of the parent document"),
+    file_id: str = Path(...),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
     user_payload: dict = Depends(get_current_user_payload_strict),
 ):
@@ -76,19 +78,19 @@ async def delete_knowledge(
         raise HTTPException(status_code=403, detail="Not authorized to perform this action")
 
     try:
-        DataService.delete_document(doc_id, retriever)
+        DataService.delete_document(file_id, retriever)
         return {
             "status": "success",
-            "message": f"Document {doc_id} has been deleted."
+            "message": f"Document {file_id} has been deleted."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
 
 
 # API Update
-@router.put("/{doc_id}")
+@router.put("/{file_id}")
 async def update_knowledge_file(
-    doc_id: str,
+    file_id: str = Path(...),
     file: UploadFile = File(...),
     topic: str = Form(...),
     location: str = Form(...),
@@ -102,7 +104,7 @@ async def update_knowledge_file(
 
     try:
         # Xóa cái cũ
-        DataService.delete_document(doc_id, retriever)
+        DataService.delete_document(file_id, retriever)
         
         # Thêm cái mới
         metadata = {
