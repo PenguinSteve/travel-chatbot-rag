@@ -127,12 +127,8 @@ class DataService:
                 result = retriever.docstore.collection.delete_many(
                     {"value.metadata.original_id": original_id}
                 )
-
                 print(retriever.docstore.collection)
-                print(f"✅ Deleted {result.deleted_count} parent docs from MongoDB")
-            else:
-                print("⚠️ Docstore does not support direct collection access")
-            print("Successfully deleted from MongoDB Docstore")
+                print(f"Deleted {result.deleted_count} parent docs from MongoDB")
         except Exception as e:
             print(f"Warning: Failed to delete from MongoDB (ID might not exist): {e}")
 

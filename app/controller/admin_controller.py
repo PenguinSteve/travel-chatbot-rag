@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, P
 from typing import List, Optional
 from langchain.retrievers import ParentDocumentRetriever
 from app.core.dependencies import get_parent_document_retriever
+from app.middleware.auth_jwt import get_current_user_payload_strict
 from app.services.data_service import DataService
 
 router = APIRouter(prefix="/admin/knowledge")
@@ -11,8 +12,12 @@ router = APIRouter(prefix="/admin/knowledge")
 @router.post("/import-excel")
 async def import_excel(
     file: UploadFile = File(...),
-    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+    user_payload: dict = Depends(get_current_user_payload_strict),
 ):
+    if user_payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="File must be Excel format")
         
@@ -34,12 +39,12 @@ async def import_file(
     location: str = Form(...),
     name: Optional[str] = Form(None),
     source: Optional[str] = Form(None),
-    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+    user_payload: dict = Depends(get_current_user_payload_strict),
 ):
-    """
-    Import file không cấu trúc (PDF, DOCX, TXT).
-    Metadata (Topic, Location, Name) được truyền qua Form Data.
-    """
+    if user_payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
     # Gom metadata từ Form vào dict
     metadata = {
         "Topic": topic,
@@ -64,13 +69,12 @@ async def import_file(
 @router.delete("/{doc_id}")
 async def delete_knowledge(
     doc_id: str = Path(..., description="MongoDB _id of the parent document"),
-    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+    user_payload: dict = Depends(get_current_user_payload_strict),
 ):
-    """
-    Xóa tài liệu.
-    Input: doc_id (là _id của document cha trong MongoDB).
-    Action: Xóa cha trong Mongo + Xóa con trong Pinecone.
-    """
+    if user_payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
     try:
         DataService.delete_document(doc_id, retriever)
         return {
@@ -90,8 +94,12 @@ async def update_knowledge_file(
     location: str = Form(...),
     name: Optional[str] = Form(None),
     source: Optional[str] = Form(None),
-    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever)
+    retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
+    user_payload: dict = Depends(get_current_user_payload_strict),
 ):
+    if user_payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
+
     try:
         # Xóa cái cũ
         DataService.delete_document(doc_id, retriever)
