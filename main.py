@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from app.controller import controller
+from app.controller import admin_controller, controller
 from app.config.vector_database_pinecone import PineconeConfig
 from app.repositories.pinecone_repository import PineconeRepository
-from app.config.mongodb import get_database, get_docstore
+from app.config.mongodb import get_database, get_docstore, get_database_schedule
 from langchain.retrievers import ParentDocumentRetriever
 from langchain_pinecone import PineconeRerank
 from app.config.settings import settings
@@ -13,6 +13,8 @@ from app.config.redis_cache import get_redis_instance
 
 import os
 from dotenv import load_dotenv
+
+from app.repositories.schedule_repository import ScheduleRepository
 
 # from app.services.reranker_service import RerankerService
 load_dotenv()
@@ -27,7 +29,13 @@ async def life_span(app: FastAPI):
         db = get_database()
         app.state.db = db
         print('\n---------------------Connected to MongoDB database---------------------\n', db.name)
-        
+
+        # Initialize schedule repository
+        db_schedule = get_database_schedule()
+        schedule_repo = ScheduleRepository(db_schedule)
+        app.state.schedule_repository = schedule_repo
+        print('\n---------------------Initialized Schedule repository---------------------\n')
+
         # Initialize vector store
         vector_store = PineconeConfig().get_vector_store()
 
@@ -102,3 +110,4 @@ app.add_middleware(
 )
 
 app.include_router(controller.router)
+app.include_router(admin_controller.router)

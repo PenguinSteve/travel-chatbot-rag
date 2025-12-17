@@ -3,7 +3,7 @@ from fastapi.concurrency import run_in_threadpool
 from langchain_pinecone import PineconeRerank
 from pymongo import MongoClient
 from app.models.chat_schema import ChatMessage
-from app.repositories import schedule_repository
+from app.repositories.schedule_repository import ScheduleRepository
 from app.repositories.redis_chat_repository import RedisChatRepository
 from app.request.AskRequest import AskRequest
 from app.response.AskResponse import AskResponse
@@ -12,7 +12,8 @@ from app.core.dependencies import (
     get_mongodb_instance,
     get_parent_document_retriever,
     get_pinecone_reranker,
-    get_chat_repository)
+    get_chat_repository,
+    get_schedule_repository)
 from app.services.agent_service import AgentService
 from app.repositories.chat_repository import ChatRepository
 from app.utils.chat_history import build_chat_history_from_db
@@ -30,6 +31,7 @@ async def create_schedule(
         mongodb_instance: MongoClient = Depends(get_mongodb_instance),
         parent_document_retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
         pinecone_reranker: PineconeRerank = Depends(get_pinecone_reranker),
+        schedule_repository: ScheduleRepository = Depends(get_schedule_repository)
         ):
      
     print("\n---------------------Received Create Schedule Request---------------------\n"

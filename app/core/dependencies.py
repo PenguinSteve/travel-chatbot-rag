@@ -90,3 +90,9 @@ def get_chat_repository(
     print("\n---------------------Using RedisChatRepository (Guest User)---------------------\n")
     # Trả về repository dùng Redis
     return RedisChatRepository(redis_instance)
+
+def get_schedule_repository(request: Request):
+    if not hasattr(request.app.state, 'schedule_repository'):
+        raise RuntimeError("Schedule repository not initialized in app state.")
+        
+    return request.app.state.schedule_repository
