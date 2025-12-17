@@ -38,6 +38,8 @@ class DataService:
 
         documents = []
 
+        original_id = str(file.filename) + "_" + str(uuid.uuid4())
+
         df = df[DataService.REQUIRED_EXCEL_COLUMNS]
 
         for _, row in df.iterrows():
@@ -50,9 +52,12 @@ class DataService:
             doc = Document(page_content=content, metadata=metadata)
             documents.append(doc)
 
+            doc.metadata["original_id"] = original_id
+
         if documents:
             print(f"\n---------------------Ingesting {len(documents)} documents from uploaded Excel file---------------------\n")
-            return retriever.add_documents(documents)
+            retriever.add_documents(documents)
+            return original_id
         
         print(f"\n---------------------Ingested {len(documents)} documents from uploaded Excel file successfully---------------------\n")
         return []
@@ -70,6 +75,9 @@ class DataService:
 
         try:
             documents = []
+
+            original_id = str(file.filename) + "_" + str(uuid.uuid4())
+
             # 2. Chọn Loader phù hợp theo đuôi file
             if file.filename.lower().endswith(".pdf"):
                 loader = PyPDFLoader(temp_filename)
@@ -91,11 +99,14 @@ class DataService:
             
             # Gán metadata từ request
             final_metadata = metadata.copy()
+
+            final_metadata["original_id"] = original_id
             
             new_doc = Document(page_content=full_content, metadata=final_metadata)
 
             # 4. Thêm vào Retriever
-            return retriever.add_documents([new_doc])
+            retriever.add_documents([new_doc])
+            return original_id
 
         finally:
             # Dọn dẹp file tạm
@@ -104,22 +115,31 @@ class DataService:
 
     @staticmethod
     def delete_document(
-        doc_id: str, 
+        original_id: str, 
         retriever: ParentDocumentRetriever
     ):
-        print(f"--- Deleting Document ID: {doc_id} ---")
+        print(f"--- Deleting Document ID: {original_id} ---")
         
         # Xóa trong MongoDB (Docstore)
         try:
-            retriever.docstore.mdelete([doc_id])
+            if hasattr(retriever.docstore, "collection"):
+                # Query: Xóa tất cả doc mà metadata.original_id == original_id
+                result = retriever.docstore.collection.delete_many(
+                    {"value.metadata.original_id": original_id}
+                )
+
+                print(retriever.docstore.collection)
+                print(f"✅ Deleted {result.deleted_count} parent docs from MongoDB")
+            else:
+                print("⚠️ Docstore does not support direct collection access")
             print("Successfully deleted from MongoDB Docstore")
         except Exception as e:
             print(f"Warning: Failed to delete from MongoDB (ID might not exist): {e}")
 
         # Xóa trong Pinecone (Vectorstore)
         try:
-            # Dùng filter doc_id để xóa tất cả chunks con
-            retriever.vectorstore.delete(filter={"doc_id": doc_id})
+            # Dùng filter original_id để xóa tất cả chunks con
+            retriever.vectorstore.delete(filter={"original_id": original_id})
             print("Successfully deleted from Pinecone Vectorstore")
             return True
         except Exception as e:
