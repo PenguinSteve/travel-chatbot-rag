@@ -47,3 +47,20 @@ class ScheduleRepository:
             },
             upsert=True
         )
+    
+    def delete_schedule_by_trip_id(self, trip_id: str):
+        try:
+            if isinstance(trip_id, str):
+                trip_id = ObjectId(trip_id)
+                
+            result = self.collection.delete_one({"trip_id": trip_id})
+
+            if result.deleted_count > 0:
+                print(f"Schedule with trip_id {trip_id} deleted successfully.")
+                return True
+            else:
+                print(f"No schedule found with trip_id {trip_id}.")
+                return False
+        except Exception as e:
+            print(f"Error deleting schedule with trip_id {trip_id}: {e}")
+            return False

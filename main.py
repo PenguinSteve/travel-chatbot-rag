@@ -40,14 +40,24 @@ async def life_span(app: FastAPI):
         app.state.docstore = docstore
         print('\n---------------------Initialized MongoDB docstore---------------------\n')
 
-        # Initialize ParentDocumentRetriever
+        # Initialize ParentDocumentRetriever 
+
+        # Child splitter
         child_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=100,
             separators=["\n\n", "\n", ". ", " ", ""])
+        
+        # Parent splitter
+        parent_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1500,
+            chunk_overlap=300,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
 
         app.state.parent_document_retriever = ParentDocumentRetriever(docstore=docstore,
-                                                                    child_splitter=child_splitter, 
+                                                                    child_splitter=child_splitter,
+                                                                    parent_splitter=parent_splitter,
                                                                     vectorstore=vector_store,
                                                                     search_kwargs={"k":15, "filter":{} })
         print('\n---------------------Initialized ParentDocumentRetriever---------------------\n')

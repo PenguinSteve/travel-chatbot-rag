@@ -97,6 +97,7 @@ class AgentService:
                 json_string_to_parse = raw_output
 
 
+        trip_id = None
         try:
             decoded_answer = json.loads(json_string_to_parse)
 
@@ -109,18 +110,20 @@ class AgentService:
             else:
                 ai_message_for_history = raw_output
                 decoded_answer = raw_output
-                trip_id = None
 
         except (json.JSONDecodeError, TypeError):
             ai_message_for_history = raw_output  # Lưu toàn bộ raw_output nếu không phải JSON hợp lệ
-            trip_id = None
             decoded_answer = raw_output
 
 
-        self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
-        agent_result = self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai", trip_id=ObjectId(trip_id) if trip_id else None))
+        # self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=question, role="human"))
+        # agent_result = self.chat_repository.save_message(session_id=session_id, message=ChatMessage(content=ai_message_for_history, role="ai", trip_id=ObjectId(trip_id) if trip_id else None))
     
-        return {"answer": decoded_answer, "timestamp": agent_result.timestamp}
+        return {
+            "answer": decoded_answer,
+            "ai_message_for_history": ai_message_for_history,
+            "trip_id": trip_id
+        }
     
     def schedule_trip_wrapper(self, trip_details_str: str):
         print(f"\n--- Wrapping schedule_tool for user: {self.user_id} ---\n")

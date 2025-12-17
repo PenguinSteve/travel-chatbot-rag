@@ -15,6 +15,7 @@ def _gemini(model: str, temperature: float = 0.0, max_output_tokens: int = 4096)
 
 def llm_plan() -> ChatGoogleGenerativeAI:
     return _gemini(model="gemini-2.5-flash-lite", temperature=settings.LLM_TEMPERATURE or 0.3)
+    # return _gemini(model="gemini-2.5-flash", temperature=settings.LLM_TEMPERATURE or 0.3)
 
 def llm_summary() -> ChatGroq:
     api_key = settings.GROQ_API_KEY

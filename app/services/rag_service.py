@@ -3,19 +3,13 @@ from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_pinecone import PineconeRerank
 from app.core.llm import llm_create_standalone_question, llm_rag, llm_classify
 import os
-from app.models.chat_schema import ChatMessage
-from app.repositories.chat_repository import ChatRepository
-from app.repositories.redis_chat_repository import RedisChatRepository
 from app.request.AskRequest import ChatRequest
 
 class RAGService:
     
     @staticmethod
-    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], chat_repository: (ChatRepository | RedisChatRepository) = None , pinecone_reranker: PineconeRerank = None):
+    def generate_response(retriever, payload: ChatRequest, standalone_question: str, chat_history: list, topics: list = [], location: list = [], pinecone_reranker: PineconeRerank = None):
         try:
-            message = payload.message
-            session_id = payload.session_id
-
             llm = llm_rag()
 
             system = """### Role and Goal
@@ -43,7 +37,7 @@ class RAGService:
                 3.  **The "Be Detailed and Helpful" Rule:**
                     * When the user asks for information, find relevant items in the 'Context'.
                     * **[QUANTITY LOGIC]:**
-                        * **Case A (General Request):** If the user asks a general question **WITHOUT** specifying a quantity (e.g., "suggest some places"), **you MUST limit your response to the top 5-7 most relevant items** found in the 'Context' to avoid overwhelming the user.
+                        * **Case A (General Request):** If the user asks a general question **WITHOUT** specifying a quantity (e.g., "suggest some places"), **you MUST limit your response to the top 3-5 most relevant items** found in the 'Context' to avoid overwhelming the user.
                         * **Case B (Specific Request):** If the user specifies a quantity (e.g., "top 10", "list all"), follow that instruction.
                         * **Case C (Insufficient Data):** If the 'Context' has fewer items than requested (e.g., user asks for 20, Context has 10), detailedly describe the 10 items you have and naturally state that those are the best recommendations you have right now.
                     * **[DETAIL REQUIREMENT]:** For the items you choose to list, provide a detailed summary:
@@ -114,12 +108,9 @@ class RAGService:
 
                 response = rag_chain.invoke(prompt_input)
 
-                chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-                ai_message = chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
                 return {
                     "response": response,
                     "context_docs": [],
-                    "timestamp": ai_message.timestamp
                 }
             
             
@@ -141,15 +132,11 @@ class RAGService:
 
             response = rag_chain.invoke(prompt_input)
 
-            chat_repository.save_message(session_id=session_id, message=ChatMessage(content=message, role="human"))
-            ai_message = chat_repository.save_message(session_id=session_id, message=ChatMessage(content=response, role="ai"))
-            
             print("\n---------------------Generated response:---------------------\n")
             print(response)
             return {
                 "response": response,
                 "context_docs": context_docs,
-                "timestamp": ai_message.timestamp
             }
         except Exception as e:
             raise RuntimeError(f"RAG generation error: {e}")

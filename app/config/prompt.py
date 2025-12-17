@@ -97,7 +97,8 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
           }},
           "tips": ["<string>", "<string>"]
         }}
-
+    - NOTE: The `schedule_tool` will return this object WITH an additional generated field "trip_id". You must capture and preserve this "trip_id" in the Final Answer.
+        
   6. FINAL ANSWER CONSTRUCTION:
     - The transition after `schedule_tool` Observation MUST be:
         1. Thought: I now know the final answer.
@@ -106,7 +107,7 @@ REACT_PROMPT = """You are a smart travel-planning AI agent.
     - Structure:
         {{
           "message": "Lịch trình du lịch cho [Location] ([Duration]) đã được lưu thành công. Bạn có thể xem chi tiết tại [**http://localhost:3000/plan/schedules**](http://localhost:3000/plan/schedules).",
-          "data": <Full JSON object from schedule_tool Observation>
+          "data": <Full JSON object from schedule_tool Observation, INCLUDING the "trip_id" field. DO NOT remove the trip_id.>
         }}
 
   Your response MUST strictly follow this format, with no extra text.
