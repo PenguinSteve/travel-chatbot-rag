@@ -41,6 +41,11 @@ async def import_file(
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
     authorized: bool = Depends(verify_internal_api_key)
 ):
+    SUPPORTED_FILE_TYPES = ['application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'text/plain']
+
     # Gom metadata từ Form vào dict
     metadata = {
         "Topic": topic,
@@ -48,6 +53,12 @@ async def import_file(
         "Name": name if name else file.filename,
         "Source": source if source else "Unknown"
     }
+
+    if file.content_type not in SUPPORTED_FILE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+    
+    if topic.strip() == "" or location.strip() == "":
+        raise HTTPException(status_code=400, detail="Topic and Location are required fields")
 
     try:
         DataService.ingest_unstructured_file(file, file_id, metadata, retriever)
