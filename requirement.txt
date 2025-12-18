@@ -27,6 +27,7 @@ sentence-transformers
 # Data Processing
 pandas
 openpyxl
+docx2txt=0.9
 
 # HTTP Client
 httpx

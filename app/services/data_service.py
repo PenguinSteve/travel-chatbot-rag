@@ -75,6 +75,8 @@ class DataService:
         with open(temp_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        print(f"Received file: {file}")
+
         try:
             documents = []
 
