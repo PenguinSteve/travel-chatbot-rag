@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
 
+    # INTERNAL API SETTINGS
+    INTERNAL_API_KEY: str
+
     # RERANKER SETTINGS
     PINECONE_API_KEY_RERANKER: str
 

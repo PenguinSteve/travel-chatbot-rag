@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, P
 from typing import List, Optional
 from langchain.retrievers import ParentDocumentRetriever
 from app.core.dependencies import get_parent_document_retriever
-from app.middleware.auth_jwt import get_current_user_payload_strict
+from app.middleware.auth_s2s import verify_internal_api_key
 from app.services.data_service import DataService
 
 router = APIRouter(prefix="/admin/knowledge")
@@ -14,11 +14,8 @@ async def import_excel(
     file: UploadFile = File(...),
     file_id: str = Form(...),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
-    user_payload: dict = Depends(get_current_user_payload_strict),
+    authorized: bool = Depends(verify_internal_api_key),
 ):
-    if user_payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
-
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="File must be Excel format")
         
@@ -42,11 +39,8 @@ async def import_file(
     name: Optional[str] = Form(None),
     source: Optional[str] = Form(None),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
-    user_payload: dict = Depends(get_current_user_payload_strict),
+    authorized: bool = Depends(verify_internal_api_key)
 ):
-    if user_payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
-
     # Gom metadata từ Form vào dict
     metadata = {
         "Topic": topic,
@@ -72,11 +66,8 @@ async def import_file(
 async def delete_knowledge(
     file_id: str = Path(...),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
-    user_payload: dict = Depends(get_current_user_payload_strict),
+    authorized: bool = Depends(verify_internal_api_key),
 ):
-    if user_payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
-
     try:
         DataService.delete_document(file_id, retriever)
         return {
@@ -97,11 +88,8 @@ async def update_knowledge_file(
     name: Optional[str] = Form(None),
     source: Optional[str] = Form(None),
     retriever: ParentDocumentRetriever = Depends(get_parent_document_retriever),
-    user_payload: dict = Depends(get_current_user_payload_strict),
+    authorized: bool = Depends(verify_internal_api_key),
 ):
-    if user_payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized to perform this action")
-
     try:
         # Xóa cái cũ
         DataService.delete_document(file_id, retriever)
