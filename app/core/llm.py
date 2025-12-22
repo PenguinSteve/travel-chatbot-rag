@@ -18,24 +18,25 @@ def llm_plan() -> ChatGoogleGenerativeAI:
     # return _gemini(model="gemini-2.5-flash", temperature=settings.LLM_TEMPERATURE or 0.3)
 
 def llm_summary() -> ChatGroq:
-    api_key = settings.GROQ_API_KEY
-    if not api_key:
-        raise RuntimeError("LLM_MODEL_SUMMARY not set")
+     return _gemini(model="gemini-2.5-flash-lite", temperature=settings.LLM_TEMPERATURE or 0.3)
+    # api_key = settings.GROQ_API_KEY
+    # if not api_key:
+    #     raise RuntimeError("LLM_MODEL_SUMMARY not set")
 
-    model = settings.LLM_MODEL_SUMMARY
-    temperature = 0.0
+    # model = settings.LLM_MODEL_SUMMARY
+    # temperature = 0.0
 
-    # max_tokens = 1000
+    # # max_tokens = 1000
 
-    timeout = settings.LLM_TIMEOUT
+    # timeout = settings.LLM_TIMEOUT
 
-    return ChatGroq(
-        groq_api_key=api_key,
-        model=model,
-        temperature=temperature,
-        # max_tokens=max_tokens,
-        timeout=timeout,
-    )
+    # return ChatGroq(
+    #     groq_api_key=api_key,
+    #     model=model,
+    #     temperature=temperature,
+    #     # max_tokens=max_tokens,
+    #     timeout=timeout,
+    # )
 
 def llm_create_standalone_question() -> ChatGoogleGenerativeAI:
     api_key = settings.GEMINI_API_KEY_CREATE_STANDALONE_QUESTION

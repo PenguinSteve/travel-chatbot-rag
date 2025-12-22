@@ -169,7 +169,7 @@ class RAGService:
                     2. **Location**
                     - Represents the **primary geographic area(s)** that are the **context** or **main subject** of the user's question.
                     - Must be a **list** (even if only one element).
-                    - Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng'].
+                    - Allowed values: ['Hà Nội', 'Thành phố Hồ Chí Minh', 'Đà Nẵng',...].
                     - You MUST NOT guess the city if it is not **explicitly** mentioned by name.
                     - If the question contains a **district, ward, street name, or any smaller area** (e.g., "Quận 5", "Cần Giờ", "Phú Thọ Hòa", "Nghĩa An") → you MUST **NOT** map it to any city name.
                     
@@ -282,7 +282,7 @@ class RAGService:
             classification = classification_chain.invoke({"question": query})
 
             # Filter allowed topics and locations
-            allowed_cities = ["Hà Nội", "Thành phố Hồ Chí Minh", "Đà Nẵng"]
+            allowed_cities = ["Hà Nội", "Thành phố Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Huế", "Nha Trang", "Phú Quốc", "Vũng Tàu", "Đà Lạt", "Quy Nhơn", "Hội An", "Sa Pa", "Mỹ Tho", "Vinh", "Buôn Ma Thuột", "Long Xuyên", "Rạch Giá", "Bắc Ninh", "Nam Định"]
             allowed_topics = ['Food', 'Accommodation', 'Attraction', 'General', 'Festival', 'Restaurant', 'Transport', 'Plan', 'Off_topic']
             topics = [topic for topic in classification.get("Topic", []) if topic in allowed_topics]
             classification["Topic"] = topics
